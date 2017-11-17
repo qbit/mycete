@@ -13,14 +13,14 @@ import (
 	"github.com/gokyle/goconfig"
 	"github.com/matrix-org/gomatrix"
 	"github.com/mattn/go-mastodon"
-	//"github.com/qbit/mycete/protector"
+	"github.com/qbit/mycete/protector"
 )
 
 func main() {
 	cfile := flag.String("config", "/etc/mycete.conf", "Configuration file")
 	flag.Parse()
 
-	//protector.Protect("stdio rpath wpath cpath fattr getpw inet dns")
+	protector.Protect("stdio rpath wpath inet dns")
 
 	c, err := goconfig.ParseFile(*cfile)
 	if err != nil {
