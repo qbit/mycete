@@ -33,3 +33,10 @@ client_id=
 client_secret=
 access_token=
 ```
+
+## TODO
+
+- [ ] Read the timelines back into the matrix room.
+- [ ] Only establish our oauth / auth stuff when a service is enabled.
+- [ ] Post to RSS for blogging?
+- [ ] Error early if our service is enabled and we have invalid credentials. (See if there is API for testing?)
