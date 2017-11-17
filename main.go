@@ -67,7 +67,7 @@ func main() {
 			switch mtype {
 			case "m.text":
 				if post, ok := ev.Body(); ok {
-					fmt.Println("Message: ", post)
+					log.Printf("Message: '%s'", post)
 
 					if c["server"]["mastodon"] == "true" {
 						_, err := mclient.PostStatus(context.Background(), &mastodon.Toot{
@@ -105,5 +105,6 @@ func main() {
 	}()
 
 	for {
+		time.Sleep(100 * time.Second)
 	}
 }
