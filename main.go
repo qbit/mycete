@@ -78,15 +78,6 @@ func main() {
 		panic(err)
 	}
 
-	timeline, err := mclient.GetTimelineHome(context.Background(), nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for i := len(timeline) - 1; i >= 0; i-- {
-		log.Printf("Mastodon: '%s'", timeline[i].Content)
-	}
-
 	syncer := cli.Syncer.(*gomatrix.DefaultSyncer)
 	syncer.OnEventType("m.room.message", func(ev *gomatrix.Event) {
 		if ev.Sender == c["matrix"]["user"] {
