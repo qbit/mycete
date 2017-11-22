@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/matrix-org/gomatrix"
 	"github.com/mattn/go-mastodon"
 	"github.com/qbit/mycete/protector"
+	"github.com/yukkurisinai/peanuts"
 )
 
 var c goconfig.ConfigMap
@@ -33,6 +35,13 @@ func sendToot(client *mastodon.Client, post string) error {
 	_, err := client.PostStatus(context.Background(), &mastodon.Toot{
 		Status: post,
 	})
+	return err
+}
+
+func sendNut(client *peanuts.Client, post string) error {
+	v := url.Values{}
+	v.Set("text", post)
+	_, err := client.Post(v)
 	return err
 }
 
@@ -62,8 +71,20 @@ func main() {
 		AccessToken:  c["mastodon"]["access_token"],
 	})
 
-	config := oauth1.NewConfig(c["twitter"]["consumer_key"], c["twitter"]["consumer_secret"])
-	token := oauth1.NewToken(c["twitter"]["access_token"], c["twitter"]["access_secret"])
+	pclient := peanuts.NewClient(
+		c["pnut"]["client_id"],
+		c["pnut"]["client_secret"],
+	)
+	pclient.SetAccessToken(c["pnut"]["access_token"])
+
+	config := oauth1.NewConfig(
+		c["twitter"]["consumer_key"],
+		c["twitter"]["consumer_secret"],
+	)
+	token := oauth1.NewToken(
+		c["twitter"]["access_token"],
+		c["twitter"]["access_secret"],
+	)
 	httpClient := config.Client(oauth1.NoContext, token)
 	tclient := twitter.NewClient(httpClient)
 
@@ -93,19 +114,33 @@ func main() {
 					log.Printf("Message: '%s'", post)
 
 					if c["server"]["mastodon"] == "true" {
-						err = sendToot(mclient, post)
-						if err != nil {
-							log.Println(err)
-						}
-						notify(cli, "mastodon", "sent toot!")
+						go func() {
+							err = sendToot(mclient, post)
+							if err != nil {
+								log.Println(err)
+							}
+							notify(cli, "mastodon", "sent toot!")
+						}()
 					}
 
 					if c["server"]["twitter"] == "true" {
-						err = sendTweet(tclient, post)
-						if err != nil {
-							log.Println(err)
-						}
-						notify(cli, "twitter", "sent tweet!")
+						go func() {
+							err = sendTweet(tclient, post)
+							if err != nil {
+								log.Println(err)
+							}
+							notify(cli, "twitter", "sent tweet!")
+						}()
+					}
+
+					if c["server"]["pnut"] == "true" {
+						go func() {
+							err = sendNut(pclient, post)
+							if err != nil {
+								log.Println(err)
+							}
+							notify(cli, "pnut", "sent nut!")
+						}()
 					}
 				}
 			default:

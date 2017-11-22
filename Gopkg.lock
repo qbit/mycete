@@ -63,19 +63,25 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/yukkurisinai/peanuts"
+  packages = ["."]
+  revision = "07b62f912fabf62b85ea6fc08d88ef05a0b6fb8f"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "a337091b0525af65de94df2eb7e98bd9962dcbe2"
+  revision = "9dfe39835686865bff950a07b394c12a98ddc811"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "bf42f188b9bc6f2cf5b8ee5a912ef1aedd0eba4c"
+  revision = "82aafbf43bf885069dc71b7e7c2f9d7a614d47da"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "66b15aee1df83fa0920c23857cde34e5199f0fa9baa058448aa40885669f0e2f"
+  inputs-digest = "29730ef3df0f38f1dd6736456741fe09287c0fe65f462c2e5d5f27baafd94071"
   solver-name = "gps-cdcl"
   solver-version = 1

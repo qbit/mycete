@@ -6,7 +6,7 @@
 
 Riot/Matrix room: [#mycete:tapenet.org](https://riot.im/app/#/room/#mycete:tapenet.org)
 
-A [matrix.org](https://matrix.org) micro-blogging (twitter,mastodon) connector.
+A [matrix.org](https://matrix.org) micro-blogging (twitter,mastodon,pnut) connector.
 
 `mycete` pipes your chat messages from matrix to twitter and/or mastodon. It does this by
 listening in on a channel you create. Everything you enter in the channel will be published
@@ -18,6 +18,7 @@ to your various feeds!
 [server]
 twitter=true
 mastodon=true
+pnut=true
 
 [matrix]
 user=@fakeuser:matrix.org
@@ -36,11 +37,18 @@ server=https://mastodon.social
 client_id=
 client_secret=
 access_token=
+
+[pnut]
+client_id=
+client_secret=
+access_token=
 ```
 
 ## TODO
 
-- [X] TravisCI
+- [X] pnut.io integration.
+- [ ] create an interface for clients.
+- [X] TravisCI.
 - [ ] Read the timelines back into the matrix room.
 - [ ] Document the process for getting api keys.
 - [ ] Only establish our oauth / auth stuff when a service is enabled.
