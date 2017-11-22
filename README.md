@@ -1,5 +1,7 @@
 # mycete
 
+[![Build Status](https://travis-ci.org/qbit/mycete.svg?branch=master)](https://travis-ci.org/qbit/mycete)
+
 *VERY ALPHA*
 
 Riot/Matrix room: [#mycete:tapenet.org](https://riot.im/app/#/room/#mycete:tapenet.org)
