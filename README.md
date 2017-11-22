@@ -38,7 +38,7 @@ access_token=
 
 ## TODO
 
-- [ ] TravisCI
+- [X] TravisCI
 - [ ] Read the timelines back into the matrix room.
 - [ ] Document the process for getting api keys.
 - [ ] Only establish our oauth / auth stuff when a service is enabled.
