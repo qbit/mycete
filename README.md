@@ -1,6 +1,8 @@
+
+
 # mycete
-[![mycete](logo.png)
-[![Build Status](https://travis-ci.org/qbit/mycete.svg?branch=master)](https://travis-ci.org/qbit/mycete)
+<a href="https://github.com/qbit/mycete"><img src="http://logo.png" align="left" height="48" width="48" ></a>
+[![Build Status](https://travis-ci.org/qbit/mycete.svg?branch=master)(https://travis-ci.org/qbit/mycete)
 
 *VERY ALPHA*
 
