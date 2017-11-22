@@ -81,8 +81,10 @@ func main() {
 	syncer := cli.Syncer.(*gomatrix.DefaultSyncer)
 	syncer.OnEventType("m.room.message", func(ev *gomatrix.Event) {
 		if ev.Sender == c["matrix"]["user"] {
+			// Ignore messages from ourselves
 			return
 		}
+
 		if mtype, ok := ev.MessageType(); ok {
 			log.Println(ev.Sender)
 			switch mtype {
@@ -103,7 +105,7 @@ func main() {
 						if err != nil {
 							log.Println(err)
 						}
-						notify(cli, "mastodon", "sent toot!")
+						notify(cli, "twitter", "sent tweet!")
 					}
 				}
 			default:
