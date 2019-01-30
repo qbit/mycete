@@ -20,7 +20,6 @@ to your various feeds!
 [server]
 twitter=true
 mastodon=true
-pnut=true
 
 [matrix]
 user=@fakeuser:matrix.org
@@ -40,15 +39,10 @@ client_id=
 client_secret=
 access_token=
 
-[pnut]
-client_id=
-client_secret=
-access_token=
 ```
 
 ## TODO
 
-- [X] pnut.io integration.
 - [ ] create an interface for clients.
 - [X] TravisCI.
 - [ ] Read the timelines back into the matrix room.
