@@ -1,0 +1,14 @@
+#!/bin/ksh
+#
+# $OpenBSD: mycete.rc,v 1.0 2019/01/30 19:27:08 abieber Exp $
+
+daemon="/usr/local/bin/mycete"
+daemon_flags=""
+daemon_user="_mycete"
+
+. /etc/rc.d/rc.subr
+
+rc_bg=YES
+rc_reload=NO
+
+rc_cmd $1
