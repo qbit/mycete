@@ -39,6 +39,10 @@ client_id=
 client_secret=
 access_token=
 
+[images]
+enabled=true
+temp_dir=/tmp
+
 ```
 
 ## TODO
