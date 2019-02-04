@@ -26,6 +26,7 @@ user=@fakeuser:matrix.org
 password=snakesonaplane
 url=https://matrix.org
 room_id=!iasdfadsfadsfafs:matrix.org
+guard_prefix=t>
 
 [twitter]
 consumer_key=

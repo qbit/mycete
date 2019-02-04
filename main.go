@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -61,26 +62,30 @@ func mxRunBot() {
 			case "m.text":
 				if post, ok := ev.Body(); ok {
 					log.Printf("Message: '%s'", post)
+					guard_prefix := c.GetValueDefault("matrix", "guard_prefix", "")
+					if strings.HasPrefix(post, guard_prefix) {
+						post = strings.TrimSpace(post[len(guard_prefix):])
 
-					go func() {
-						if c["server"]["mastodon"] == "true" {
-							err = sendToot(mclient, post, ev.Sender)
-							if err != nil {
-								log.Println(err)
+						go func() {
+							if c["server"]["mastodon"] == "true" {
+								err = sendToot(mclient, post, ev.Sender)
+								if err != nil {
+									log.Println(err)
+								}
+								mxNotify(mxcli, "mastodon", "sent toot!")
 							}
-							mxNotify(mxcli, "mastodon", "sent toot!")
-						}
 
-						if c["server"]["twitter"] == "true" {
-							err = sendTweet(tclient, post, ev.Sender)
-							if err != nil {
-								log.Println(err)
+							if c["server"]["twitter"] == "true" {
+								err = sendTweet(tclient, post, ev.Sender)
+								if err != nil {
+									log.Println(err)
+								}
+								mxNotify(mxcli, "twitter", "sent tweet!")
 							}
-							mxNotify(mxcli, "twitter", "sent tweet!")
-						}
-						//remove saved image file if present. We only attach an image once.
-						rmFile(ev.Sender)
-					}()
+							//remove saved image file if present. We only attach an image once.
+							rmFile(ev.Sender)
+						}()
+					}
 				}
 			case "m.image":
 				if c.GetValueDefault("images", "enabled", "false") != "true" {
