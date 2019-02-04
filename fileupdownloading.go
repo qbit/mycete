@@ -60,9 +60,9 @@ func saveMatrixFile(cli *gomatrix.Client, nick, matrixurl string) error {
 	return nil
 }
 
-func rmFile(nick string) {
+func rmFile(nick string) error {
 	// log.Println("removing file for", nick)
-	os.Remove(hashNickToPath(nick))
+	return os.Remove(hashNickToPath(nick))
 }
 
 /// return hex(sha256()) of string

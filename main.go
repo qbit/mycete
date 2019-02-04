@@ -84,7 +84,9 @@ func mxRunBot() {
 								mxNotify(mxcli, "twitter", "sent tweet!")
 							}
 							//remove saved image file if present. We only attach an image once.
-							rmFile(ev.Sender)
+							if c.GetValueDefault("images", "enabled", "false") == "true" {
+								rmFile(ev.Sender)
+							}
 						}()
 					}
 				}
@@ -105,23 +107,44 @@ func mxRunBot() {
 								fmt.Println("ERROR downloading image", err)
 								return
 							}
-							mxNotify(mxcli, "info", fmt.Sprintf("image saved. Will tweet/toot with %s's next message", ev.Sender))
+							mxNotify(mxcli, "imagesaver", fmt.Sprintf("image saved. Will tweet/toot with %s's next message", ev.Sender))
 						}()
 					}
 				}
 			default:
 				fmt.Printf("%s messages are currently not supported", mtype)
 				//remove saved image file if present. We only attach an image once.
-				go func() {
-					lock := getPerUserLock(ev.Sender)
-					lock.Lock()
-					defer lock.Unlock()
-					rmFile(ev.Sender)
-				}()
+				if c.GetValueDefault("images", "enabled", "false") == "true" {
+					go func() {
+						lock := getPerUserLock(ev.Sender)
+						lock.Lock()
+						defer lock.Unlock()
+						rmFile(ev.Sender)
+					}()
+				}
 			}
 		}
 	})
 
+	/// Support redactions to "take back an uploaded image"
+	if c.GetValueDefault("images", "enabled", "false") == "true" {
+		syncer.OnEventType("m.room.redaction", func(ev *gomatrix.Event) {
+			if ev.Sender == c["matrix"]["user"] {
+				// Ignore messages from ourselves
+				return
+			}
+			go func() {
+				lock := getPerUserLock(ev.Sender)
+				lock.Lock()
+				defer lock.Unlock()
+				err := rmFile(ev.Sender)
+				if err == nil || !os.IsNotExist(err) {
+					mxNotify(mxcli, "redaction", fmt.Sprintf("%s's image has been redacted. Next toot/weet will not contain that image.", ev.Sender))
+				}
+
+			}()
+		})
+	}
 	/// Send a warning or welcome text to newly joined users
 	if len(c.GetValueDefault("matrix", "join_welcome_text", "")) > 0 {
 		syncer.OnEventType("m.room.member", func(ev *gomatrix.Event) {
