@@ -95,12 +95,14 @@ func mxRunBot() {
 				}
 				if urli, inmap := ev.Content["url"]; inmap {
 					if url, ok := urli.(string); ok {
-						if err := saveMatrixFile(mxcli, ev.Sender, url); err != nil {
-							mxNotify(mxcli, "error", "could not get your image")
-							fmt.Println("ERROR downloading image", err)
-							return
-						}
-						mxNotify(mxcli, "info", fmt.Sprintf("image saved. Will tweet/toot with %s's next message", ev.Sender))
+						go func() {
+							if err := saveMatrixFile(mxcli, ev.Sender, url); err != nil {
+								mxNotify(mxcli, "error", "could not get your image")
+								fmt.Println("ERROR downloading image", err)
+								return
+							}
+							mxNotify(mxcli, "info", fmt.Sprintf("image saved. Will tweet/toot with %s's next message", ev.Sender))
+						}()
 					}
 				}
 			default:
