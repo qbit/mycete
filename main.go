@@ -16,8 +16,6 @@ import (
 	"github.com/qbit/mycete/protector"
 )
 
-///TODO: investiagate possible race condition between sending Toot that reads file and new message of user that deletes file
-
 var c goconfig.ConfigMap
 var err error
 var temp_image_files_dir_ string
@@ -67,6 +65,9 @@ func mxRunBot() {
 						post = strings.TrimSpace(post[len(guard_prefix):])
 
 						go func() {
+							lock := getPerUserLock(ev.Sender)
+							lock.Lock()
+							defer lock.Unlock()
 							if c["server"]["mastodon"] == "true" {
 								err = sendToot(mclient, post, ev.Sender)
 								if err != nil {
@@ -96,6 +97,9 @@ func mxRunBot() {
 				if urli, inmap := ev.Content["url"]; inmap {
 					if url, ok := urli.(string); ok {
 						go func() {
+							lock := getPerUserLock(ev.Sender)
+							lock.Lock()
+							defer lock.Unlock()
 							if err := saveMatrixFile(mxcli, ev.Sender, url); err != nil {
 								mxNotify(mxcli, "error", "could not get your image")
 								fmt.Println("ERROR downloading image", err)
@@ -108,7 +112,12 @@ func mxRunBot() {
 			default:
 				fmt.Printf("%s messages are currently not supported", mtype)
 				//remove saved image file if present. We only attach an image once.
-				rmFile(ev.Sender)
+				go func() {
+					lock := getPerUserLock(ev.Sender)
+					lock.Lock()
+					defer lock.Unlock()
+					rmFile(ev.Sender)
+				}()
 			}
 		}
 	})
