@@ -113,6 +113,20 @@ func mxRunBot() {
 		}
 	})
 
+	/// Send a warning or welcome text to newly joined users
+	if len(c.GetValueDefault("matrix", "join_welcome_text", "")) > 0 {
+		syncer.OnEventType("m.room.member", func(ev *gomatrix.Event) {
+			if ev.Sender == c["matrix"]["user"] {
+				// Ignore messages from ourselves
+				return
+			}
+
+			if membership, inmap := ev.Content["membership"]; inmap && membership == "join" {
+				mxNotify(mxcli, "welcomer", c["matrix"]["join_welcome_text"])
+			}
+		})
+	}
+
 	///run event loop
 	for {
 		log.Println("syncing..")

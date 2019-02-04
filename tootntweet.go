@@ -33,7 +33,7 @@ func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) error {
 			v.Set("media_ids", strconv.FormatInt(mediaid, 10))
 		}
 	}
-	// fmt.Println("sendTweet", post, v)
+	// log.Println("sendTweet", post, v)
 	_, err = client.PostTweet(post, v)
 	return err
 }
@@ -73,7 +73,7 @@ func sendToot(client *mastodon.Client, post, matrixnick string) (err error) {
 			usertoot.MediaIDs = []mastodon.ID{mid}
 		}
 	}
-	// fmt.Println("sendToot", usertoot)
+	// log.Println("sendToot", usertoot)
 	_, err = client.PostStatus(context.Background(), usertoot)
 	return err
 }
