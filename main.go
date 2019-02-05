@@ -25,6 +25,12 @@ func mxNotify(client *gomatrix.Client, from, msg string) {
 	client.SendText(c["matrix"]["room_id"], msg)
 }
 
+// Ignore messages from ourselves
+// Ignore messages from rooms we are not interessted in
+func mxIgnoreEvent(ev *gomatrix.Event) bool {
+	return ev.Sender == c["matrix"]["user"] || ev.RoomID != c["matrix"]["room_id"]
+}
+
 func mxRunBot() {
 	mxcli, _ := gomatrix.NewClient(c["matrix"]["url"], "", "")
 	resp, err := mxcli.Login(&gomatrix.ReqLogin{
@@ -49,8 +55,7 @@ func mxRunBot() {
 
 	syncer := mxcli.Syncer.(*gomatrix.DefaultSyncer)
 	syncer.OnEventType("m.room.message", func(ev *gomatrix.Event) {
-		if ev.Sender == c["matrix"]["user"] {
-			// Ignore messages from ourselves
+		if mxIgnoreEvent(ev) { //ignore messages from ourselves or from other rooms in case of dual-login
 			return
 		}
 
@@ -129,8 +134,7 @@ func mxRunBot() {
 	/// Support redactions to "take back an uploaded image"
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
 		syncer.OnEventType("m.room.redaction", func(ev *gomatrix.Event) {
-			if ev.Sender == c["matrix"]["user"] {
-				// Ignore messages from ourselves
+			if mxIgnoreEvent(ev) { //ignore messages from ourselves or from other rooms in case of dual-login
 				return
 			}
 			go func() {
@@ -148,8 +152,7 @@ func mxRunBot() {
 	/// Send a warning or welcome text to newly joined users
 	if len(c.GetValueDefault("matrix", "join_welcome_text", "")) > 0 {
 		syncer.OnEventType("m.room.member", func(ev *gomatrix.Event) {
-			if ev.Sender == c["matrix"]["user"] {
-				// Ignore messages from ourselves
+			if mxIgnoreEvent(ev) { //ignore messages from ourselves or from other rooms in case of dual-login
 				return
 			}
 
