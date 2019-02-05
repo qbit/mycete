@@ -1,15 +1,11 @@
 # github.com/cenkalti/backoff v1.1.0
 github.com/cenkalti/backoff
-# github.com/dghubble/go-twitter v0.0.0-20170910035229-c4115fa44a92
-github.com/dghubble/go-twitter/twitter
-# github.com/dghubble/oauth1 v0.4.0
-github.com/dghubble/oauth1
-# github.com/dghubble/sling v1.1.0
-github.com/dghubble/sling
 # github.com/gokyle/goconfig v0.0.0-20150908043511-373746557f7f
 github.com/gokyle/goconfig
 # github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135
 github.com/google/go-querystring/query
+# github.com/ChimeraCoder/anaconda v2.0.0
+github.com/ChimeraCoder/anaconda
 # github.com/gorilla/websocket v1.2.0
 github.com/gorilla/websocket
 # github.com/matrix-org/gomatrix v0.0.0-20171003113848-a7fc80c8060c
