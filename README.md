@@ -6,7 +6,9 @@
 
 *STILL ALPHA*
 
-A [matrix.org](https://matrix.org) micro-blogging (twitter,mastodon,pnut) connector.
+Riot/Matrix room: [#mycete:tapenet.org](https://riot.im/app/#/room/#mycete:tapenet.org)
+
+A [matrix.org](https://matrix.org) micro-blogging (twitter,mastodon) connector.
 
 `mycete` pipes your chat messages from matrix to twitter and/or mastodon. It does this by
 listening in on a channel you create. Everything you enter in the channel will be published
