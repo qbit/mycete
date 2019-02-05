@@ -1,0 +1,30 @@
+[Unit]
+Description=Mycete Matrix->Mastodon/Twitter Bot
+Wants=network.target
+StartLimitIntervalSec=0
+
+[Service]
+User=mycete
+WorkingDirectory=/tmp
+ExecStart=/usr/local/bin/mycete --conf /etc/mycete.conf
+
+Type=simple
+Nice=15
+Restart=always
+RestartSec=8
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+SystemCallArchitectures=native
+SystemCallFilter=~@chown @clock @cpu-emulation @debug @keyring @module @mount @obsolete @privileged @swap @sync @raw-io
+CPUQuota=50%
+LimitFSIZE=128
+ProtectControlGroups=yes
+## options below won't work in --user context. comment them out for --user to work.
+PrivateDevices=true
+ProtectKernelModules=true
+
+
+[Install]
+WantedBy=multi-user.target
