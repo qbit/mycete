@@ -12,6 +12,8 @@ A [matrix.org](https://matrix.org) micro-blogging (twitter,mastodon,pnut) connec
 listening in on a channel you create. Everything you enter in the channel will be published
 to your various feeds!
 
+Optionaly, only stuff you prepend with a ''guard_prefix'' will be published. Obviously the prefix will be removed first.
+
 ## Example Config
 
 ```
@@ -54,3 +56,5 @@ temp_dir=/tmp
 - [ ] Only establish our oauth / auth stuff when a service is enabled.
 - [ ] Post to RSS for blogging?
 - [ ] Error early if our service is enabled and we have invalid credentials. (See if there is API for testing?)
+- [X] post images
+- [X] more feedback and user error guards
