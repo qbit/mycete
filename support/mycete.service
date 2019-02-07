@@ -19,7 +19,7 @@ ProtectKernelTunables=true
 SystemCallArchitectures=native
 SystemCallFilter=~@chown @clock @cpu-emulation @debug @keyring @module @mount @obsolete @privileged @swap @sync @raw-io
 CPUQuota=50%
-LimitFSIZE=128
+PrivateTmp=true
 ProtectControlGroups=yes
 ## options below won't work in --user context. comment them out for --user to work.
 PrivateDevices=true
