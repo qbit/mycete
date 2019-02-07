@@ -69,6 +69,12 @@ func mxRunBot() {
 					if strings.HasPrefix(post, guard_prefix) {
 						post = strings.TrimSpace(post[len(guard_prefix):])
 
+						if err = checkCharacterLimit(post); err != nil {
+							log.Println(err)
+							mxNotify(mxcli, "limitcheck", fmt.Sprintf("Not tweeting/tooting this! %s", err.Error()))
+							return
+						}
+
 						go func() {
 							lock := getPerUserLock(ev.Sender)
 							lock.Lock()

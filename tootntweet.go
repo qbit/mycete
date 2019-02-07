@@ -11,6 +11,27 @@ import (
 	mastodon "github.com/mattn/go-mastodon"
 )
 
+const character_limit_twitter_ int = 280
+const character_limit_mastodon_ int = 500
+
+func checkCharacterLimit(status string) error {
+	// get minimum character limit
+	climit := 10000
+	if c["server"]["mastodon"] == "true" && climit > character_limit_mastodon_ {
+		climit = character_limit_mastodon_
+	}
+	if c["server"]["twitter"] == "true" && climit > character_limit_twitter_ {
+		climit = character_limit_twitter_
+	}
+
+	// get number of characters ... this is not entirely accurate, but close enough. (read twitters API page on character counting)
+	if len(status) <= climit {
+		return nil
+	} else {
+		return fmt.Errorf("status/tweet of %d characters exceeds limit of %d", len(status), climit)
+	}
+}
+
 /////////////
 /// Twitter
 /////////////
