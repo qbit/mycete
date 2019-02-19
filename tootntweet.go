@@ -47,7 +47,7 @@ func initTwitterClient() *anaconda.TwitterApi {
 
 }
 
-func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) (weburl string, err error) {
+func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) (weburl string, statusid int64, err error) {
 	v := url.Values{}
 	v.Set("status", post)
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
@@ -60,6 +60,7 @@ func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) (weburl str
 	tweet, err = client.PostTweet(post, v)
 	if err == nil {
 		weburl = fmt.Sprintf(webbaseformaturl_twitter_, tweet.IdStr)
+		statusid = tweet.Id
 	}
 	return
 }
@@ -91,7 +92,7 @@ func initMastodonClient() *mastodon.Client {
 	})
 }
 
-func sendToot(client *mastodon.Client, post, matrixnick string) (weburl string, err error) {
+func sendToot(client *mastodon.Client, post, matrixnick string) (weburl string, statusid mastodon.ID, err error) {
 	var mid mastodon.ID
 	usertoot := &mastodon.Toot{Status: post}
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
@@ -104,6 +105,7 @@ func sendToot(client *mastodon.Client, post, matrixnick string) (weburl string, 
 	mstatus, err = client.PostStatus(context.Background(), usertoot)
 	if mstatus != nil && err == nil {
 		weburl = mstatus.URL
+		statusid = mstatus.ID
 	}
 	return
 }
