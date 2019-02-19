@@ -12,6 +12,6 @@ require (
 	github.com/matrix-org/gomatrix v0.0.0-20171003113848-a7fc80c8060c
 	github.com/mattn/go-mastodon v0.0.2
 	github.com/tomnomnom/linkheader v0.0.0-20160328204959-6953a30d4443 // indirect
-	golang.org/x/net v0.0.0-20171115151908-9dfe39835686 // indirect
+	golang.org/x/net v0.0.0-20190108225652-1e06a53dbb7e // indirect
 	golang.org/x/sys v0.0.0-20171121202757-82aafbf43bf8
 )

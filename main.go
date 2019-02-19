@@ -76,23 +76,28 @@ func mxRunBot() {
 						}
 
 						go func() {
+							var reviewurl string
 							lock := getPerUserLock(ev.Sender)
 							lock.Lock()
 							defer lock.Unlock()
 							if c["server"]["mastodon"] == "true" {
-								err = sendToot(mclient, post, ev.Sender)
+								reviewurl, err = sendToot(mclient, post, ev.Sender)
 								if err != nil {
-									log.Println(err)
+									log.Println("MastodonTootERROR", err)
+									mxNotify(mxcli, "mastodon", "ERROR while tooting!")
+								} else {
+									mxNotify(mxcli, "mastodon", fmt.Sprintf("sent toot! %s", reviewurl))
 								}
-								mxNotify(mxcli, "mastodon", "sent toot!")
 							}
 
 							if c["server"]["twitter"] == "true" {
-								err = sendTweet(tclient, post, ev.Sender)
+								reviewurl, err = sendTweet(tclient, post, ev.Sender)
 								if err != nil {
-									log.Println(err)
+									log.Println("TwitterTweetERROR", err)
+									mxNotify(mxcli, "twitter", "ERROR while tweeting!")
+								} else {
+									mxNotify(mxcli, "twitter", fmt.Sprintf("sent tweet! %s", reviewurl))
 								}
-								mxNotify(mxcli, "twitter", "sent tweet!")
 							}
 							//remove saved image file if present. We only attach an image once.
 							if c.GetValueDefault("images", "enabled", "false") == "true" {
