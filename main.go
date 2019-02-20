@@ -178,7 +178,10 @@ func mxRunBot() {
 			future_chan := make(chan *MsgStatusTripple, 1)
 			rums_retrieve_chan <- RUMSRetrieveMsg{key: ev.Redacts, future: future_chan}
 			rums_ptr := <-future_chan
-			if rums_ptr != nil && rums_ptr.MatrixUser == ev.Sender {
+			if rums_ptr == nil {
+				return
+			}
+			if c.GetValueDefault("matrix", "admins_can_redact_user_status", "false") == "true" || rums_ptr.MatrixUser == ev.Sender {
 				if _, err := tclient.DeleteTweet(rums_ptr.TweetID, true); err == nil {
 					mxNotify(mxcli, "redaction", "Ok, I deleted that tweet for you")
 				} else {
@@ -191,6 +194,8 @@ func mxRunBot() {
 					log.Println("RedactTweetERROR", err)
 					mxNotify(mxcli, "redaction", "Could not redact your toot")
 				}
+			} else {
+				mxNotify(mxcli, "redaction", "Won't redact other users status for you! Set admins_can_redact_user_status=true if you disagree.")
 			}
 		}()
 	})
