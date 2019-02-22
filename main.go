@@ -124,6 +124,18 @@ func mxRunBot() {
 					fmt.Println("ignoring image since support not enabled in config file")
 					return
 				}
+				if infomapi, inmap := ev.Content["info"]; inmap {
+					if infomap, ok := infomapi.(map[string]interface{}); ok {
+						if imgsizei, insubmap := infomap["size"]; insubmap {
+							if imgsize, ok2 := imgsizei.(int64); ok2 {
+								if err = checkImageBytesizeLimit(imgsize); err != nil {
+									mxNotify(mxcli, "imagesaver", err.Error())
+									return
+								}
+							}
+						}
+					}
+				}
 				if urli, inmap := ev.Content["url"]; inmap {
 					if url, ok := urli.(string); ok {
 						go func() {
@@ -131,7 +143,7 @@ func mxRunBot() {
 							lock.Lock()
 							defer lock.Unlock()
 							if err := saveMatrixFile(mxcli, ev.Sender, url); err != nil {
-								mxNotify(mxcli, "error", "could not get your image")
+								mxNotify(mxcli, "error", "Could not get your image! "+err.Error())
 								fmt.Println("ERROR downloading image:", err)
 								return
 							}
