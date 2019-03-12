@@ -11,6 +11,31 @@ import (
 	mastodon "github.com/mattn/go-mastodon"
 )
 
+const character_limit_twitter_ int = 280
+const character_limit_mastodon_ int = 500
+const imgbytes_limit_twitter_ int64 = 5242880
+const imgbytes_limit_mastodon_ int64 = 4 * 1024 * 1024
+
+const webbaseformaturl_twitter_ string = "https://twitter.com/statuses/%s"
+
+func checkCharacterLimit(status string) error {
+	// get minimum character limit
+	climit := 10000
+	if c["server"]["mastodon"] == "true" && climit > character_limit_mastodon_ {
+		climit = character_limit_mastodon_
+	}
+	if c["server"]["twitter"] == "true" && climit > character_limit_twitter_ {
+		climit = character_limit_twitter_
+	}
+
+	// get number of characters ... this is not entirely accurate, but close enough. (read twitters API page on character counting)
+	if len(status) <= climit {
+		return nil
+	} else {
+		return fmt.Errorf("status/tweet of %d characters exceeds limit of %d", len(status), climit)
+	}
+}
+
 /////////////
 /// Twitter
 /////////////
@@ -24,8 +49,7 @@ func initTwitterClient() *anaconda.TwitterApi {
 
 }
 
-func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) error {
-	var err error
+func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) (weburl string, statusid int64, err error) {
 	v := url.Values{}
 	v.Set("status", post)
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
@@ -34,8 +58,13 @@ func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) error {
 		}
 	}
 	// log.Println("sendTweet", post, v)
-	_, err = client.PostTweet(post, v)
-	return err
+	var tweet anaconda.Tweet
+	tweet, err = client.PostTweet(post, v)
+	if err == nil {
+		weburl = fmt.Sprintf(webbaseformaturl_twitter_, tweet.IdStr)
+		statusid = tweet.Id
+	}
+	return
 }
 
 func getImageForTweet(client *anaconda.TwitterApi, nick string) (int64, error) {
@@ -65,7 +94,7 @@ func initMastodonClient() *mastodon.Client {
 	})
 }
 
-func sendToot(client *mastodon.Client, post, matrixnick string) (err error) {
+func sendToot(client *mastodon.Client, post, matrixnick string) (weburl string, statusid mastodon.ID, err error) {
 	var mid mastodon.ID
 	usertoot := &mastodon.Toot{Status: post}
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
@@ -74,8 +103,13 @@ func sendToot(client *mastodon.Client, post, matrixnick string) (err error) {
 		}
 	}
 	// log.Println("sendToot", usertoot)
-	_, err = client.PostStatus(context.Background(), usertoot)
-	return err
+	var mstatus *mastodon.Status
+	mstatus, err = client.PostStatus(context.Background(), usertoot)
+	if mstatus != nil && err == nil {
+		weburl = mstatus.URL
+		statusid = mstatus.ID
+	}
+	return
 }
 
 func getImageForToot(client *mastodon.Client, matrixnick string) (mastodon.ID, error) {

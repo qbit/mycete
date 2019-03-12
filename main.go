@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/gokyle/goconfig"
 	"github.com/matrix-org/gomatrix"
+	mastodon "github.com/mattn/go-mastodon"
 	"github.com/qbit/mycete/protector"
 )
 
@@ -49,6 +51,8 @@ func mxRunBot() {
 
 	mxcli.SetCredentials(resp.UserID, resp.AccessToken)
 
+	rums_store_chan, rums_retrieve_chan := runRememberUsersMessageToStatus()
+
 	if _, err := mxcli.JoinRoom(c["matrix"]["room_id"], "", nil); err != nil {
 		panic(err)
 	}
@@ -69,29 +73,48 @@ func mxRunBot() {
 					if strings.HasPrefix(post, guard_prefix) {
 						post = strings.TrimSpace(post[len(guard_prefix):])
 
+						if err = checkCharacterLimit(post); err != nil {
+							log.Println(err)
+							mxNotify(mxcli, "limitcheck", fmt.Sprintf("Not tweeting/tooting this! %s", err.Error()))
+							return
+						}
+
 						go func() {
 							lock := getPerUserLock(ev.Sender)
 							lock.Lock()
 							defer lock.Unlock()
+							var reviewurl string
+							var twitterid int64
+							var mastodonid mastodon.ID
+
 							if c["server"]["mastodon"] == "true" {
-								err = sendToot(mclient, post, ev.Sender)
+								reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender)
 								if err != nil {
-									log.Println(err)
+									log.Println("MastodonTootERROR:", err)
+									mxNotify(mxcli, "mastodon", "ERROR while tooting!")
+								} else {
+									mxNotify(mxcli, "mastodon", fmt.Sprintf("sent toot! %s", reviewurl))
 								}
-								mxNotify(mxcli, "mastodon", "sent toot!")
 							}
 
 							if c["server"]["twitter"] == "true" {
-								err = sendTweet(tclient, post, ev.Sender)
+								reviewurl, twitterid, err = sendTweet(tclient, post, ev.Sender)
 								if err != nil {
-									log.Println(err)
+									log.Println("TwitterTweetERROR:", err)
+									mxNotify(mxcli, "twitter", "ERROR while tweeting!")
+								} else {
+									mxNotify(mxcli, "twitter", fmt.Sprintf("sent tweet! %s", reviewurl))
 								}
-								mxNotify(mxcli, "twitter", "sent tweet!")
 							}
+
+							//remember posted status IDs
+							rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusTripple{ev.Sender, mastodonid, twitterid}}
+
 							//remove saved image file if present. We only attach an image once.
 							if c.GetValueDefault("images", "enabled", "false") == "true" {
 								rmFile(ev.Sender)
 							}
+
 						}()
 					}
 				}
@@ -101,6 +124,18 @@ func mxRunBot() {
 					fmt.Println("ignoring image since support not enabled in config file")
 					return
 				}
+				if infomapi, inmap := ev.Content["info"]; inmap {
+					if infomap, ok := infomapi.(map[string]interface{}); ok {
+						if imgsizei, insubmap := infomap["size"]; insubmap {
+							if imgsize, ok2 := imgsizei.(int64); ok2 {
+								if err = checkImageBytesizeLimit(imgsize); err != nil {
+									mxNotify(mxcli, "imagesaver", err.Error())
+									return
+								}
+							}
+						}
+					}
+				}
 				if urli, inmap := ev.Content["url"]; inmap {
 					if url, ok := urli.(string); ok {
 						go func() {
@@ -108,8 +143,8 @@ func mxRunBot() {
 							lock.Lock()
 							defer lock.Unlock()
 							if err := saveMatrixFile(mxcli, ev.Sender, url); err != nil {
-								mxNotify(mxcli, "error", "could not get your image")
-								fmt.Println("ERROR downloading image", err)
+								mxNotify(mxcli, "error", "Could not get your image! "+err.Error())
+								fmt.Println("ERROR downloading image:", err)
 								return
 							}
 							mxNotify(mxcli, "imagesaver", fmt.Sprintf("image saved. Will tweet/toot with %s's next message", ev.Sender))
@@ -132,23 +167,51 @@ func mxRunBot() {
 	})
 
 	/// Support redactions to "take back an uploaded image"
-	if c.GetValueDefault("images", "enabled", "false") == "true" {
-		syncer.OnEventType("m.room.redaction", func(ev *gomatrix.Event) {
-			if mxIgnoreEvent(ev) { //ignore messages from ourselves or from other rooms in case of dual-login
-				return
-			}
+	syncer.OnEventType("m.room.redaction", func(ev *gomatrix.Event) {
+		if mxIgnoreEvent(ev) { //ignore messages from ourselves or from other rooms in case of dual-login
+			return
+		}
+		if c.GetValueDefault("images", "enabled", "false") == "true" {
 			go func() {
 				lock := getPerUserLock(ev.Sender)
 				lock.Lock()
 				defer lock.Unlock()
 				err := rmFile(ev.Sender)
-				if err == nil || !os.IsNotExist(err) {
-					mxNotify(mxcli, "redaction", fmt.Sprintf("%s's image has been redacted. Next toot/weet will not contain that image.", ev.Sender))
+				if err == nil {
+					mxNotify(mxcli, "redaction", fmt.Sprintf("%s's image has been redacted. Next toot/weet will not contain any image.", ev.Sender))
+				}
+				if err != nil && !os.IsNotExist(err) {
+					log.Println("ERROR deleting image:", err)
 				}
 
 			}()
-		})
-	}
+		}
+		go func() {
+			future_chan := make(chan *MsgStatusTripple, 1)
+			rums_retrieve_chan <- RUMSRetrieveMsg{key: ev.Redacts, future: future_chan}
+			rums_ptr := <-future_chan
+			if rums_ptr == nil {
+				return
+			}
+			if c.GetValueDefault("matrix", "admins_can_redact_user_status", "false") == "true" || rums_ptr.MatrixUser == ev.Sender {
+				if _, err := tclient.DeleteTweet(rums_ptr.TweetID, true); err == nil {
+					mxNotify(mxcli, "redaction", "Ok, I deleted that tweet for you")
+				} else {
+					log.Println("RedactTweetERROR:", err)
+					mxNotify(mxcli, "redaction", "Could not redact your tweet")
+				}
+				if err := mclient.DeleteStatus(context.Background(), rums_ptr.TootID); err == nil {
+					mxNotify(mxcli, "redaction", "Ok, I deleted that toot for you")
+				} else {
+					log.Println("RedactTweetERROR", err)
+					mxNotify(mxcli, "redaction", "Could not redact your toot")
+				}
+			} else {
+				mxNotify(mxcli, "redaction", "Won't redact other users status for you! Set admins_can_redact_user_status=true if you disagree.")
+			}
+		}()
+	})
+
 	/// Send a warning or welcome text to newly joined users
 	if len(c.GetValueDefault("matrix", "join_welcome_text", "")) > 0 {
 		syncer.OnEventType("m.room.member", func(ev *gomatrix.Event) {
