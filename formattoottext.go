@@ -8,7 +8,7 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-var matrix_notice_character_limit_ int = 89
+var matrix_notice_character_limit_ int = 1000
 
 func formatUserNameForMatrix(acct mastodon.Account) string {
 	tagstripper := bluemonday.StrictPolicy()

@@ -20,6 +20,7 @@ type StatusFilterConfig struct {
 	must_not_be_written_by_us  bool
 	check_visibility           bool
 	must_have_visiblity        []string
+	check_tagnames             bool
 	must_have_one_of_tag_names []string
 	must_be_unmuted            bool
 	must_be_original           bool
@@ -107,7 +108,7 @@ func (frc *FeedRoomConnector) filterAndHandleStatus(config StatusFilterConfig, s
 				continue FILTERFOR
 			}
 
-			if config.check_visibility {
+			if config.check_visibility && config.must_have_visiblity != nil && len(config.must_have_visiblity) > 0 {
 				for _, visibilty_compare := range config.must_have_visiblity {
 					if status.Visibility == visibilty_compare {
 						passes_visibility_check = true
@@ -135,7 +136,7 @@ func (frc *FeedRoomConnector) filterAndHandleStatus(config StatusFilterConfig, s
 				}
 			}
 
-			if len(config.must_have_one_of_tag_names) > 0 {
+			if config.check_tagnames && config.must_have_one_of_tag_names != nil && len(config.must_have_one_of_tag_names) > 0 {
 			TAGFOR:
 				for _, tag_compare := range config.must_have_one_of_tag_names {
 					for _, tag := range status.Tags {

@@ -31,6 +31,9 @@ room_id=!iasdfadsfadsfafs:matrix.org
 guard_prefix=t>
 join_welcome_text="Welcome! Warning: Everything you say I will toot and/or tweet to the world if it starts with t>"
 admins_can_redact_user_status=false
+show_mastodon_notifications=true
+show_own_toots_from_foreign_clients=true
+show_complete_home_stream=false
 
 [twitter]
 consumer_key=
@@ -55,6 +58,15 @@ characterlimit = 89
 filter_tags=
 filter_sensitive=false
 
+[feed2matrix]
+characterlimit = 1000
+target_room_ids=
+filter_visibility=public unlisted private direct
+filter_for_tags=
+filter_sensitive=false
+filter_reblogs=false
+filter_otherpeoplesposts=true
+subscribe_tagstreams=
 
 ```
 

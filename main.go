@@ -44,10 +44,17 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 	//configuration for additonal matrix rooms
 	filter_reblogs := c.GetValueDefault("feed2matrix", "filter_reblogs", "false") == "true"
 	filter_sensitive := c.GetValueDefault("feed2matrix", "filter_sensitive", "false") == "true"
+	filter_otherpeoplesposts := c.GetValueDefault("feed2matrix", "filter_otherpeoplesposts", "true") == "true"
 	additional_target_room_ids := strings.Split(c.GetValueDefault("feed2matrix", "target_room_ids", ""), " ")
 	filter_visibility := strings.Split(c.GetValueDefault("feed2matrix", "filter_visibility", ""), " ")
-	subscribe_tagstreams := strings.Split(c.GetValueDefault("feed2matrix", "subscribe_tagstreams", ""), " ")
+	if len(filter_visibility) == 1 && len(filter_visibility[0]) == 0 {
+		filter_visibility = nil
+	}
+	// TODO: // subscribe_tagstreams := strings.Split(c.GetValueDefault("feed2matrix", "subscribe_tagstreams", ""), " ")
 	filter_for_tags := strings.Split(c.GetValueDefault("feed2matrix", "filter_for_tags", ""), " ")
+	if len(filter_for_tags) == 1 && len(filter_for_tags[0]) == 0 {
+		filter_for_tags = nil
+	}
 
 	//then join additional rooms
 	for _, mroom := range additional_target_room_ids {
@@ -83,13 +90,14 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 	//--> filter_ownposts_c		--> filter_tag_c
 	//							\-> filter_ownposts_duplicates_c
 	filter_ownposts_no_private_c := frc.filterAndHandleStatus(StatusFilterConfig{
-		must_have_one_of_tag_names: nil,
-		must_be_original:           false,
+		must_have_one_of_tag_names: filter_for_tags,
+		must_be_original:           filter_reblogs,
 		must_be_unmuted:            true,
-		must_not_be_sensitive:      true,
-		check_visibility:           true,
-		must_have_visiblity:        []string{"public"},
-		must_be_written_by_us:      true,
+		must_not_be_sensitive:      filter_sensitive,
+		check_visibility:           filter_visibility != nil,
+		check_tagnames:             filter_for_tags != nil,
+		must_have_visiblity:        filter_visibility,
+		must_be_written_by_us:      filter_otherpeoplesposts,
 		must_not_be_written_by_us:  false,
 		must_be_followed_by_us:     false},
 		filter_ownposts_duplicates_c, nil)
@@ -98,11 +106,12 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 	//							\-> filter_ownposts_duplicates_c
 	filter_ownposts_with_private_c := frc.filterAndHandleStatus(StatusFilterConfig{
 		must_have_one_of_tag_names: nil,
+		check_tagnames:             false,
 		must_be_original:           false,
 		must_be_unmuted:            true,
 		must_not_be_sensitive:      false,
 		check_visibility:           false,
-		must_be_written_by_us:      true,
+		must_be_written_by_us:      !show_complete_home_stream,
 		must_not_be_written_by_us:  false,
 		must_be_followed_by_us:     false},
 		filter_duplicates_and_selfsent_c, filter_ownposts_no_private_c)
@@ -144,9 +153,13 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 		for {
 			select {
 			case notification := <-notification2myroom_c:
-				mxNotify(mxcli, "writePublishedFeedsIntoControllingRoom Notifcation", formatNotificationForMatrix(notification))
+				if show_own_toots_from_foreign_clients || show_complete_home_stream {
+					mxNotify(mxcli, "writePublishedFeedsIntoControllingRoom Notifcation", formatNotificationForMatrix(notification))
+				}
 			case foreignsentstatus := <-no_duplicate_or_selfsent_status_c:
-				mxNotify(mxcli, "writePublishedFeedsIntoControllingRoom Foreign Status", formatStatusForMatrix(foreignsentstatus))
+				if show_mastodon_notifications {
+					mxNotify(mxcli, "writePublishedFeedsIntoControllingRoom Foreign Status", formatStatusForMatrix(foreignsentstatus))
+				}
 			}
 		}
 	}()
