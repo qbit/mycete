@@ -50,7 +50,10 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 	if len(filter_visibility) == 1 && len(filter_visibility[0]) == 0 {
 		filter_visibility = nil
 	}
-	// TODO: // subscribe_tagstreams := strings.Split(c.GetValueDefault("feed2matrix", "subscribe_tagstreams", ""), " ")
+	subscribe_tagstreams := strings.Split(c.GetValueDefault("feed2matrix", "subscribe_tagstreams", ""), " ")
+	if len(subscribe_tagstreams) == 1 && len(subscribe_tagstreams[0]) == 0 {
+		subscribe_tagstreams = nil
+	}
 	filter_for_tags := strings.Split(c.GetValueDefault("feed2matrix", "filter_for_tags", ""), " ")
 	if len(filter_for_tags) == 1 && len(filter_for_tags[0]) == 0 {
 		filter_for_tags = nil
@@ -125,16 +128,16 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 	//						\-> notification2myroom_c
 	go frc.goSplitMastodonEventStream(userstream, filter_ownposts_with_private_c, notification2myroom_c)
 
-	/*
+	for _, tag := range subscribe_tagstreams {
 		//	{cloud}					--> tagstream
-		tagstream, err := mclient.StreamingHashtag(context.Background(), "realraum", true)
+		tagstream, err := mclient.StreamingHashtag(context.Background(), tag, true)
 		if err != nil {
 			panic(err)
 		}
 		//--> tagstream			--> filter_tag_c
 		//						\-> nil
-			go frc.goSplitMastodonEventStream(tagstream, filter_tag_c, nil)
-	*/
+		go frc.goSplitMastodonEventStream(tagstream, filter_ownposts_duplicates_c, nil)
+	}
 
 	//start writing mastodon feed messages to room
 	if len(additional_target_room_ids) > 0 {
