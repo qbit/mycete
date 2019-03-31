@@ -52,21 +52,30 @@ enabled=true
 temp_dir=/tmp
 
 [feed2matrix]
-dst_room_ids=
-subscribe_only_public=false
-characterlimit = 89
-filter_tags=
-filter_sensitive=false
-
-[feed2matrix]
 characterlimit = 1000
-target_room_ids=
-filter_visibility=public unlisted private direct
-filter_for_tags=
+configurations=filter1 filter2
+subscribe_tagstreams=interesstingtag otherinteresstingtag
+
+[feed2matrix_filter1]
+target_room=!example1:matrix.org
+filter_visibility=public
+filter_for_tags=interesstingtag
 filter_sensitive=false
 filter_reblogs=false
-filter_otherpeoplesposts=true
-subscribe_tagstreams=
+filter_myposts=true
+filter_otherpeoplesposts=false
+filter_unfollowed=false
+
+[feed2matrix_filter2]
+target_room=!example2:matrix.org
+filter_visibility=public
+filter_for_tags=otherinteresstingtag
+filter_sensitive=false
+filter_reblogs=true
+filter_myposts=false
+filter_otherpeoplesposts=false
+filter_unfollowed=true
+
 
 ```
 
@@ -77,7 +86,7 @@ subscribe_tagstreams=
 - [X] Read the timelines back into the matrix room.
 - [ ] Document the process for getting api keys.
 - [ ] Only establish our oauth / auth stuff when a service is enabled.
-- [ ] Post to RSS for blogging?
+- [ ] Post to RSS for blogging? (Mastodon already does rss out of the box)
 - [ ] Error early if our service is enabled and we have invalid credentials. (See if there is API for testing?)
 - [X] post images
 - [X] more feedback and user error guards
