@@ -160,17 +160,12 @@ func mxRunBot() {
 						}()
 					}
 				}
+			case "m.video", "m.audio":
+				fmt.Printf("%s messages are currently not supported", mtype)
+				mxNotify(mxcli, "mxRunBot", "Ahh. Audio/Video files are not supported directly. Please just include it's URL in your Toot/Tweet and Mastodon/Twitter will do the rest.")
 			default:
 				fmt.Printf("%s messages are currently not supported", mtype)
 				//remove saved image file if present. We only attach an image once.
-				if c.GetValueDefault("images", "enabled", "false") == "true" {
-					go func() {
-						lock := getPerUserLock(ev.Sender)
-						lock.Lock()
-						defer lock.Unlock()
-						rmFile(ev.Sender)
-					}()
-				}
 			}
 		}
 	})
