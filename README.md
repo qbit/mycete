@@ -55,6 +55,8 @@ temp_dir=/tmp
 characterlimit = 1000
 configurations=filter1 filter2
 subscribe_tagstreams=interesstingtag otherinteresstingtag
+imagebyteslimit = 5242880
+imagecountlimit = 8
 
 [feed2matrix_filter1]
 target_room=!example1:matrix.org

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/matrix-org/gomatrix"
@@ -16,6 +17,47 @@ import (
 //// 3. post all Notifiations (private or not) to controlling matrix room (mentions, follows, etc)
 //// 4. post all public mentions of UserMe to AdditionalMatrixRooms (filtered Home timeline)
 //// 5. optionally post all Status with certain tag to AdditionalMatrixRooms (filtered HashTag timeline)
+
+var feed2matrx_image_bytes_limit_ int
+var feed2matrx_image_count_limit_ int
+
+func init() {
+	var err error
+	if feed2matrx_image_bytes_limit_, err = strconv.Atoi(c.GetValueDefault("feed2matrix", "imagebyteslimit", "4194304")); err != nil {
+		panic(err)
+	}
+	if feed2matrx_image_count_limit_, err = strconv.Atoi(c.GetValueDefault("feed2matrix", "imagecountlimit", "8")); err != nil {
+		panic(err)
+	}
+}
+
+func writeStatusToRoom(mxcli *gomatrix.Client, status *mastodon.Status, mroom string) {
+	log.Println("writeStatusToRoom:", "status:", status.ID, "to room:", mroom)
+	mxcli.SendNotice(mroom, formatStatusForMatrix(status))
+	if status.MediaAttachments != nil && len(status.MediaAttachments) > 0 && len(status.MediaAttachments) <= feed2matrx_image_count_limit_ {
+		for _, attachment := range status.MediaAttachments {
+			if attachment.Type == "image" || attachment.Type == "gifv" {
+				if img_origsize, err := strconv.Atoi(attachment.Meta.Original.Size); err != nil && img_origsize <= feed2matrx_image_bytes_limit_ {
+					imgurl := attachment.RemoteURL
+					if len(imgurl) == 0 {
+						imgurl = attachment.URL
+					}
+					if len(imgurl) == 0 {
+						imgurl = attachment.PreviewURL
+					}
+					resp_media_up, err := mxcli.UploadLink(imgurl)
+					if resp_media_up != nil && err == nil {
+						mxcli.SendImage(mroom, attachment.Description, resp_media_up.ContentURI)
+					} else {
+						log.Printf("writeStatusToRoom: Error uploading image: attachment: %+v, url: %s, error: %s", attachment, imgurl, err.Error())
+					}
+				} else {
+					log.Printf("ignoring image: %d < %d, %s", img_origsize, feed2matrx_image_bytes_limit_, err)
+				}
+			}
+		}
+	}
+}
 
 func filterMastodonStreamForRoom(frc *FeedRoomConnector, configname string, targetroomduplicatefilter chan<- *mastodon.Status, statusOut chan<- *mastodon.Status) (statusInRv chan<- *mastodon.Status) {
 	//subconfiguration for additonal matrix rooms
@@ -36,7 +78,8 @@ func filterMastodonStreamForRoom(frc *FeedRoomConnector, configname string, targ
 	/// Filter Homestream for things to be sent to additional rooms
 	//--> filter_ownposts_no_private_c		--> nil
 	//										\-> filter_ownposts_duplicates_c
-	return frc.filterAndHandleStatus(StatusFilterConfig{
+	return frc.pickStatusFromChannel(StatusFilterConfig{
+		debugname:                  configname,
 		must_have_one_of_tag_names: filter_for_tags,
 		must_be_original:           filter_reblogs,
 		must_be_unmuted:            true,
@@ -97,15 +140,12 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 			room_c := make(chan *mastodon.Status, 42)
 			//--> filter_ownposts_duplicates_c	-->	nil
 			//									\-> no_duplicate_status_c --> to additional rooms
-			room_filter_c, _ := frc.filterDuplicateStatus(room_c, nil)
+			room_filter_c, _ := frc.filterDuplicateStatus(target_room, room_c, nil)
 			room_duplicate_filter_targets[target_room] = room_filter_c
 			go func() {
 				log.Println("writeMastodonFeedIntoAdditionalMatrixRooms: starting for", target_room)
 				for status := range room_c {
-
-					log.Println("writeMastodonFeedIntoAdditionalMatrixRooms: sending Notice to %s", target_room)
-					mxcli.SendNotice(target_room, formatStatusForMatrix(status))
-
+					writeStatusToRoom(mxcli, status, target_room)
 				}
 			}()
 		}
@@ -117,12 +157,13 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 
 	//--> filter_duplicates_and_selfsent_c	--> filter_ownposts_duplicates_c
 	//										\-> no_duplicate_or_selfsent_status_c --> to controlling room
-	filter_duplicates_and_selfsent_c, markseen_c := frc.filterDuplicateStatus(no_duplicate_or_selfsent_status_c, nil)
+	filter_duplicates_and_selfsent_c, markseen_c := frc.filterDuplicateStatus("controlroom", no_duplicate_or_selfsent_status_c, nil)
 
 	/// Filter Homestream for things sent from our account but not from controlling channel
 	//--> filter_ownposts_with_private_c		--> next_in_chain_
 	//											\-> filter_duplicates_and_selfsent_c
-	filter_ownposts_with_private_c := frc.filterAndHandleStatus(StatusFilterConfig{
+	filter_ownposts_with_private_c := frc.pickStatusFromChannel(StatusFilterConfig{
+		debugname:                  "controlroom",
 		must_have_one_of_tag_names: nil,
 		check_tagnames:             false,
 		must_be_original:           false,
@@ -145,7 +186,8 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 
 	//subscribe tags in addition to home stream
 	for _, tag := range subscribe_tagstreams {
-		tagstream, err := mclient.StreamingHashtag(context.Background(), tag, true)
+		log.Println("writeMastodonBackIntoMatrixRooms: subscribing tag", tag)
+		tagstream, err := mclient.StreamingHashtag(context.Background(), tag, false)
 		if err != nil {
 			panic(err)
 		}
@@ -165,14 +207,7 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 				}
 			case foreignsentstatus := <-no_duplicate_or_selfsent_status_c:
 				if show_mastodon_notifications {
-					mxNotify(mxcli, "writePublishedFeedsIntoControllingRoom Foreign Status", formatStatusForMatrix(foreignsentstatus))
-					if foreignsentstatus.MediaAttachments != nil && len(foreignsentstatus.MediaAttachments) > 0 && len(foreignsentstatus.MediaAttachments) < 9 {
-						for _, attachment := range foreignsentstatus.MediaAttachments {
-							if attachment.Type == "image" || attachment.Type == "gifv" {
-								mxcli.SendImage(c["matrix"]["room_id"], attachment.Description, attachment.RemoteURL)
-							}
-						}
-					}
+					writeStatusToRoom(mxcli, foreignsentstatus, c["matrix"]["room_id"])
 				}
 			}
 		}

@@ -16,6 +16,7 @@ type FeedRoomConnector struct {
 }
 
 type StatusFilterConfig struct {
+	debugname                  string
 	must_be_written_by_us      bool
 	must_not_be_written_by_us  bool
 	check_visibility           bool
@@ -68,7 +69,7 @@ func (frc *FeedRoomConnector) joinStatusStreams(statusOutChan chan<- *mastodon.S
 	return
 }
 
-func (frc *FeedRoomConnector) filterAndHandleStatus(config StatusFilterConfig, statusPassedFilter chan<- *mastodon.Status, statusOut chan<- *mastodon.Status) (statusInRV chan<- *mastodon.Status) {
+func (frc *FeedRoomConnector) pickStatusFromChannel(config StatusFilterConfig, statusPassedFilter chan<- *mastodon.Status, statusOut chan<- *mastodon.Status) (statusInRV chan<- *mastodon.Status) {
 	statusIn := make(chan *mastodon.Status, 42)
 
 	go func() {
@@ -94,17 +95,17 @@ func (frc *FeedRoomConnector) filterAndHandleStatus(config StatusFilterConfig, s
 			passes_flag_check := !(status.Muted != nil && status.Muted.(bool) == true && config.must_be_unmuted) && !(status.Sensitive && config.must_not_be_sensitive) && !(config.must_be_original && ((status.Reblogged != nil && status.Reblogged.(bool) == true) || status.Reblog != nil))
 
 			if !passes_flag_check {
-				log.Println("goFilterStati: failed flag check")
+				log.Println("pickStatusFromChannel:", config.debugname, status.ID, "failed flag check")
 				continue FILTERFOR
 			}
 
 			if config.must_be_written_by_us && status.Account.ID != my_account.ID {
-				log.Println("goFilterStati: failed check: must be written by us BUT IS NOT")
+				log.Println("pickStatusFromChannel:", config.debugname, status.ID, "failed check: must be written by us BUT IS NOT")
 				continue FILTERFOR
 			}
 
 			if config.must_not_be_written_by_us && status.Account.ID == my_account.ID {
-				log.Println("goFilterStati: failed check: must NOT be written by us BUT IS")
+				log.Println("pickStatusFromChannel:", config.debugname, status.ID, "failed check: must NOT be written by us BUT IS")
 				continue FILTERFOR
 			}
 
@@ -117,7 +118,7 @@ func (frc *FeedRoomConnector) filterAndHandleStatus(config StatusFilterConfig, s
 				}
 
 				if !passes_visibility_check {
-					log.Println("goFilterStati: failed visibility check")
+					log.Println("pickStatusFromChannel:", config.debugname, status.ID, "failed visibility check")
 					continue FILTERFOR
 				}
 			}
@@ -127,11 +128,11 @@ func (frc *FeedRoomConnector) filterAndHandleStatus(config StatusFilterConfig, s
 				if relationships, relerr := frc.mclient.GetAccountRelationships(context.Background(), []string{string(status.Account.ID)}); relerr == nil && len(relationships) > 0 {
 					passes_follow_check = relationships[0].Following && !relationships[0].Blocking
 				} else {
-					log.Printf("goFilterStati::FollowCheck: ", relerr)
+					log.Printf("pickStatusFromChannel:", config.debugname, status.ID, ":FollowCheck: ", relerr)
 					passes_follow_check = false
 				}
 				if !passes_follow_check {
-					log.Println("goFilterStati: failed follow check")
+					log.Println("pickStatusFromChannel:", config.debugname, status.ID, "failed follow check")
 					continue FILTERFOR
 				}
 			}
@@ -147,7 +148,7 @@ func (frc *FeedRoomConnector) filterAndHandleStatus(config StatusFilterConfig, s
 					}
 				}
 				if !passes_tag_check {
-					log.Println("goFilterStati: failed tag check")
+					log.Println("pickStatusFromChannel:", config.debugname, status.ID, " failed tag check")
 					continue FILTERFOR
 				}
 			}
@@ -162,7 +163,7 @@ func (frc *FeedRoomConnector) filterAndHandleStatus(config StatusFilterConfig, s
 /// TODO: prune list after time (use bounded memory)
 ///       idea: use 2 maps at a time, prune one every x time (more efficient on cleanup, just throw stuff away)
 ///       idea2: give each entry a timestamp (faster on lookup, expensive on cleanup)
-func (frc *FeedRoomConnector) filterDuplicateStatus(statusPassedFilter chan<- *mastodon.Status, statusOut chan<- *mastodon.Status) (statusInRv chan<- *mastodon.Status, markStatusSeenRv chan<- mastodon.ID) {
+func (frc *FeedRoomConnector) filterDuplicateStatus(debugname string, statusPassedFilter chan<- *mastodon.Status, statusOut chan<- *mastodon.Status) (statusInRv chan<- *mastodon.Status, markStatusSeenRv chan<- mastodon.ID) {
 	statusIn := make(chan *mastodon.Status, 42)
 	markStatusSeen := make(chan mastodon.ID, 42)
 	go func() {
@@ -182,7 +183,7 @@ func (frc *FeedRoomConnector) filterDuplicateStatus(statusPassedFilter chan<- *m
 				}
 				if _, inmap := already_seen_map[status.ID]; inmap {
 					//already boosted this status "today", probably used more than one of our hashtags
-					log.Println("goFilterStati: failed already seen check")
+					log.Println("filterDuplicateStatus:", debugname, status.ID, "failed already seen check")
 					continue FILTERFOR
 				}
 

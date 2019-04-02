@@ -10,11 +10,11 @@ require (
 	github.com/gokyle/goconfig v0.0.0-20150908043511-373746557f7f
 	github.com/gorilla/websocket v1.2.0 // indirect
 	github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af
-	github.com/mattn/go-mastodon v0.0.3
+	github.com/mattn/go-mastodon v0.0.4-0.20190311051807-e804ee7eb264
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/tomnomnom/linkheader v0.0.0-20160328204959-6953a30d4443 // indirect
-	golang.org/x/net v0.0.0-20190108225652-1e06a53dbb7e // indirect
-	golang.org/x/sys v0.0.0-20171121202757-82aafbf43bf8
+	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c // indirect
+	golang.org/x/net v0.0.0-20190328230028-74de082e2cca // indirect
+	golang.org/x/sys v0.0.0-20190402142545-baf5eb976a8c
+	golang.org/x/tools v0.0.0-20190402200628-202502a5a924 // indirect
 )
-
-//replace github.com/mattn/go-mastodon v0.0.3 => github.com/btittelbach/go-mastodon v0.0.3
