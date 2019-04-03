@@ -140,7 +140,7 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 			room_c := make(chan *mastodon.Status, 42)
 			//--> filter_ownposts_duplicates_c	-->	nil
 			//									\-> no_duplicate_status_c --> to additional rooms
-			room_filter_c, _ := frc.filterDuplicateStatus(target_room, room_c, nil)
+			room_filter_c, _ = frc.filterDuplicateStatus(target_room, room_c, nil)
 			room_duplicate_filter_targets[target_room] = room_filter_c
 			go func() {
 				log.Println("writeMastodonFeedIntoAdditionalMatrixRooms: starting for", target_room)
