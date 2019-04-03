@@ -103,3 +103,43 @@ func hashNickToPath(matrixnick string) string {
 	copy(shasum[0:sha256.Size], shasum32[0:sha256.Size])
 	return path.Join(temp_image_files_dir_, hex.EncodeToString(shasum))
 }
+
+type MxContentUrlFuture struct {
+	imgurl          string
+	future_mxcurl_c chan string
+}
+
+///TODO: use short fixed roundbuffer array instead of map. unlikely we will encounter the same imgurl twice in a long time.
+// type MxContentStore struct {
+// 	imgurl string
+// 	mxcurl string
+// }
+
+//TODO: don't be a memory hog
+func task_UploadImageLinksToMatrix(mxcli *gomatrix.Client) chan<- MxContentUrlFuture {
+	futures_chan := make(chan MxContentUrlFuture, 42)
+	go func() {
+		mx_link_store := make(map[string]string, 50)
+		for future := range futures_chan {
+			resp := ""
+			if savedimg, inmap := mx_link_store[future.imgurl]; inmap {
+				resp = savedimg
+			} else { // else upload it
+				if resp_media_up, err := mxcli.UploadLink(future.imgurl); err == nil {
+					mx_link_store[future.imgurl] = resp_media_up.ContentURI
+					resp = resp_media_up.ContentURI
+				} else {
+					log.Printf("uploadImageLinksToMatrix Error: url: %s, error: %s", future.imgurl, err.Error())
+				}
+			}
+			//return something to future in every case
+			if future.future_mxcurl_c != nil {
+				select {
+				case future.future_mxcurl_c <- resp:
+				default:
+				}
+			}
+		}
+	}()
+	return futures_chan
+}

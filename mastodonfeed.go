@@ -10,9 +10,10 @@ import (
 )
 
 type FeedRoomConnector struct {
-	mclient *mastodon.Client
-	tclient *anaconda.TwitterApi
-	mxcli   *gomatrix.Client
+	mclient        *mastodon.Client
+	tclient        *anaconda.TwitterApi
+	mxcli          *gomatrix.Client
+	mxlinkupload_c chan<- MxContentUrlFuture
 }
 
 type StatusFilterConfig struct {

@@ -31,9 +31,15 @@ func init() {
 	}
 }
 
-func writeStatusToRoom(mxcli *gomatrix.Client, status *mastodon.Status, mroom string) {
+func (frc *FeedRoomConnector) uploadImageLinkToMatrix(imgurl string) string {
+	future := make(chan string, 3)
+	frc.mxlinkupload_c <- MxContentUrlFuture{imgurl: imgurl, future_mxcurl_c: future}
+	return <-future
+}
+
+func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom string) {
 	log.Println("writeStatusToRoom:", "status:", status.ID, "to room:", mroom)
-	mxcli.SendNotice(mroom, formatStatusForMatrix(status))
+	frc.mxcli.SendNotice(mroom, formatStatusForMatrix(status))
 	if status.MediaAttachments != nil && len(status.MediaAttachments) > 0 && len(status.MediaAttachments) <= feed2matrx_image_count_limit_ {
 		for _, attachment := range status.MediaAttachments {
 			if attachment.Type == "image" || attachment.Type == "gifv" {
@@ -45,11 +51,11 @@ func writeStatusToRoom(mxcli *gomatrix.Client, status *mastodon.Status, mroom st
 					if len(imgurl) == 0 {
 						imgurl = attachment.PreviewURL
 					}
-					resp_media_up, err := mxcli.UploadLink(imgurl)
-					if resp_media_up != nil && err == nil {
-						mxcli.SendImage(mroom, attachment.Description, resp_media_up.ContentURI)
+					content_uri := frc.uploadImageLinkToMatrix(imgurl)
+					if len(content_uri) > 0 {
+						frc.mxcli.SendImage(mroom, attachment.Description, content_uri)
 					} else {
-						log.Printf("writeStatusToRoom: Error uploading image: attachment: %+v, url: %s, error: %s", attachment, imgurl, err.Error())
+						log.Printf("writeStatusToRoom: Error uploading image: attachment: %+v, imgurl: %s", attachment, imgurl)
 					}
 				} else {
 					log.Printf("ignoring image: %d < %d, %s", img_origsize, feed2matrx_image_bytes_limit_, err)
@@ -99,9 +105,10 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 	}
 
 	frc := &FeedRoomConnector{
-		mclient: mclient,
-		tclient: nil,
-		mxcli:   mxcli,
+		mclient:        mclient,
+		tclient:        nil,
+		mxcli:          mxcli,
+		mxlinkupload_c: task_UploadImageLinksToMatrix(mxcli),
 	}
 
 	//configuation for controlling room
@@ -145,7 +152,7 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 			go func() {
 				log.Println("writeMastodonFeedIntoAdditionalMatrixRooms: starting for", target_room)
 				for status := range room_c {
-					writeStatusToRoom(mxcli, status, target_room)
+					frc.writeStatusToRoom(status, target_room)
 				}
 			}()
 		}
@@ -207,7 +214,7 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 				}
 			case foreignsentstatus := <-no_duplicate_or_selfsent_status_c:
 				if show_mastodon_notifications {
-					writeStatusToRoom(mxcli, foreignsentstatus, c["matrix"]["room_id"])
+					frc.writeStatusToRoom(foreignsentstatus, c["matrix"]["room_id"])
 				}
 			}
 		}
