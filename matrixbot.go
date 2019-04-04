@@ -5,12 +5,28 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/matrix-org/gomatrix"
 	mastodon "github.com/mattn/go-mastodon"
 )
+
+var (
+	guard_prefix_  string
+	reblog_cmd_    string
+	favourite_cmd_ string
+)
+
+func init() {
+	guard_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "guard_prefix", ""))
+	reblog_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "reblog_cmd", "reblog>"))
+	favourite_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "favourite_cmd", "+1>"))
+	if guard_prefix_ == reblog_cmd_ || reblog_cmd_ == favourite_cmd_ || favourite_cmd_ == guard_prefix_ {
+		panic("ERROR: guard_prefix, reblog_cmd or favourite_cmd MUST differ")
+	}
+}
 
 func mxNotify(client *gomatrix.Client, from, msg string) {
 	log.Printf("%s: %s\n", from, msg)
@@ -64,9 +80,35 @@ func runMatrixPublishBot() {
 			case "m.text":
 				if post, ok := ev.Body(); ok {
 					log.Printf("Message: '%s'", post)
-					guard_prefix := c.GetValueDefault("matrix", "guard_prefix", "")
-					if strings.HasPrefix(post, guard_prefix) {
-						post = strings.TrimSpace(post[len(guard_prefix):])
+					if strings.HasPrefix(post, reblog_cmd_) {
+					} else if strings.HasPrefix(post, favourite_cmd_) {
+						//TODO: accept strings in form:
+						// - url (where we can detect twitter or mastodon)
+						// ✓ "toot <ID>" --> mastodon
+						// ✓ "status <ID>" --> mastdon
+						// ✓ "tweet <ID>" --> twitter
+						// ✓ "birdsite <ID>" --> twitter
+						// - last --> favorite the last received toot or tweet
+						args := strings.SplitN(strings.TrimSpace(post[len(favourite_cmd_):]), " ", 3)
+						if len(args) > 1 {
+							postid, err := strconv.ParseInt(args[1], 10, 64)
+							if err != nil || postid <= 0 {
+								mxNotify(mxcli, "favorite", "Sorry, can't parse that ID gives as 2nd argument")
+								return
+							}
+							switch strings.ToLower(args[0]) {
+							case "toot", "status":
+								if _, err = mclient.Favourite(context.Background(), mastodon.ID(postid)); err != nil {
+									mxNotify(mxcli, "favorite", fmt.Sprintf("error while favouring toot %d: %s", postid, err.Error()))
+								}
+							case "tweet", "birdsite":
+								if _, err = tclient.Favorite(postid); err != nil {
+									mxNotify(mxcli, "favorite", fmt.Sprintf("error while favouring tweet %d: %s", postid, err.Error()))
+								}
+							}
+						}
+					} else if strings.HasPrefix(post, guard_prefix_) {
+						post = strings.TrimSpace(post[len(guard_prefix_):])
 
 						if err = checkCharacterLimit(post); err != nil {
 							log.Println(err)

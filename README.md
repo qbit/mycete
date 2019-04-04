@@ -29,6 +29,8 @@ password=snakesonaplane
 url=https://matrix.org
 room_id=!iasdfadsfadsfafs:matrix.org
 guard_prefix=t>
+reblog_cmd=reblog>
+favourite_cmd=+1>
 join_welcome_text="Welcome! Warning: Everything you say I will toot and/or tweet to the world if it starts with t>"
 admins_can_redact_user_status=false
 show_mastodon_notifications=true
@@ -93,6 +95,7 @@ filter_unfollowed=true
 - [ ] Post to RSS for blogging? (Mastodon already does rss out of the box)
 - [ ] Error early if our service is enabled and we have invalid credentials. (See if there is API for testing?)
 - [X] post images
+- [ ] support uploading multiple images per Toot/Tweet
 - [X] more feedback and user error guards
 - [ ] use constrained memory, not slowly ever growing maps. Aka don't be a memory hog
 - [ ] twitter stream to matrix, favorite and reblog
