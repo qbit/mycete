@@ -86,6 +86,8 @@ filter_unfollowed=true
 - [ ] create an interface for clients.
 - [X] TravisCI.
 - [X] Read the timelines back into the matrix room.
+- [ ] favorite and reblog status
+- [ ] tests
 - [ ] Document the process for getting api keys.
 - [ ] Only establish our oauth / auth stuff when a service is enabled.
 - [ ] Post to RSS for blogging? (Mastodon already does rss out of the box)

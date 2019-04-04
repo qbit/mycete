@@ -46,7 +46,6 @@ func initTwitterClient() *anaconda.TwitterApi {
 		c["twitter"]["access_secret"],
 		c["twitter"]["consumer_key"],
 		c["twitter"]["consumer_secret"])
-
 }
 
 func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) (weburl string, statusid int64, err error) {
