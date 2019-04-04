@@ -17,6 +17,10 @@ var c goconfig.ConfigMap
 var err error
 var temp_image_files_dir_ string
 
+/// Function Name Coding Standard
+/// func runMyFunction    ... function that does not return and could be run a gorouting, e.g. go runMyFunction
+/// func taskMyFunction  ... function that internally lauches a goroutine
+
 func main() {
 	cfile := flag.String("conf", "/etc/mycete.conf", "Configuration file")
 	flag.Parse()
@@ -46,7 +50,7 @@ func main() {
 		}
 	}
 
-	go mxRunPublishBot()
+	go runMatrixPublishBot()
 
 	///wait until Signal
 	{

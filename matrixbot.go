@@ -23,7 +23,7 @@ func mxIgnoreEvent(ev *gomatrix.Event) bool {
 	return ev.Sender == c["matrix"]["user"] || ev.RoomID != c["matrix"]["room_id"]
 }
 
-func mxRunPublishBot() {
+func runMatrixPublishBot() {
 	mxcli, _ := gomatrix.NewClient(c["matrix"]["url"], "", "")
 	resp, err := mxcli.Login(&gomatrix.ReqLogin{
 		Type:     "m.login.password",
@@ -49,7 +49,7 @@ func mxRunPublishBot() {
 
 	var markseen_c chan<- mastodon.ID = nil
 	if c.SectionInConfig("feed2matrix") {
-		markseen_c = writeMastodonBackIntoMatrixRooms(mclient, mxcli)
+		markseen_c = taskWriteMastodonBackIntoMatrixRooms(mclient, mxcli)
 	}
 
 	syncer := mxcli.Syncer.(*gomatrix.DefaultSyncer)
@@ -151,7 +151,7 @@ func mxRunPublishBot() {
 				}
 			case "m.video", "m.audio":
 				fmt.Printf("%s messages are currently not supported", mtype)
-				mxNotify(mxcli, "mxRunPublishBot", "Ahh. Audio/Video files are not supported directly. Please just include it's URL in your Toot/Tweet and Mastodon/Twitter will do the rest.")
+				mxNotify(mxcli, "runMatrixPublishBot", "Ahh. Audio/Video files are not supported directly. Please just include it's URL in your Toot/Tweet and Mastodon/Twitter will do the rest.")
 			default:
 				fmt.Printf("%s messages are currently not supported", mtype)
 				//remove saved image file if present. We only attach an image once.

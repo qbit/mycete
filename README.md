@@ -86,7 +86,7 @@ filter_unfollowed=true
 - [ ] create an interface for clients.
 - [X] TravisCI.
 - [X] Read the timelines back into the matrix room.
-- [ ] favorite and reblog status
+- [ ] favorite and reblog Mastodon status
 - [ ] tests
 - [ ] Document the process for getting api keys.
 - [ ] Only establish our oauth / auth stuff when a service is enabled.
@@ -94,3 +94,5 @@ filter_unfollowed=true
 - [ ] Error early if our service is enabled and we have invalid credentials. (See if there is API for testing?)
 - [X] post images
 - [X] more feedback and user error guards
+- [ ] use constrained memory, not slowly ever growing maps. Aka don't be a memory hog
+- [ ] twitter stream to matrix, favorite and reblog

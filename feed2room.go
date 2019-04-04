@@ -65,7 +65,7 @@ func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom s
 	}
 }
 
-func filterMastodonStreamForRoom(frc *FeedRoomConnector, configname string, targetroomduplicatefilter chan<- *mastodon.Status, statusOut chan<- *mastodon.Status) (statusInRv chan<- *mastodon.Status) {
+func taskFilterMastodonStreamForRoom(frc *FeedRoomConnector, configname string, targetroomduplicatefilter chan<- *mastodon.Status, statusOut chan<- *mastodon.Status) (statusInRv chan<- *mastodon.Status) {
 	//subconfiguration for additonal matrix rooms
 	filter_reblogs := c.GetValueDefault(configname, "filter_reblogs", "false") == "true"
 	filter_unfollowed := c.GetValueDefault(configname, "filter_unfollowed", "false") == "true"
@@ -84,7 +84,7 @@ func filterMastodonStreamForRoom(frc *FeedRoomConnector, configname string, targ
 	/// Filter Homestream for things to be sent to additional rooms
 	//--> filter_ownposts_no_private_c		--> nil
 	//										\-> filter_ownposts_duplicates_c
-	return frc.pickStatusFromChannel(StatusFilterConfig{
+	return frc.taskPickStatusFromChannel(StatusFilterConfig{
 		debugname:                  configname,
 		must_have_one_of_tag_names: filter_for_tags,
 		must_be_original:           filter_reblogs,
@@ -99,7 +99,7 @@ func filterMastodonStreamForRoom(frc *FeedRoomConnector, configname string, targ
 		targetroomduplicatefilter, statusOut)
 }
 
-func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.Client) (markseen_rv chan<- mastodon.ID) {
+func taskWriteMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.Client) (markseen_rv chan<- mastodon.ID) {
 	if mclient == nil || mxcli == nil {
 		return // do nothing
 	}
@@ -108,7 +108,7 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 		mclient:        mclient,
 		tclient:        nil,
 		mxcli:          mxcli,
-		mxlinkupload_c: task_UploadImageLinksToMatrix(mxcli),
+		mxlinkupload_c: taskUploadImageLinksToMatrix(mxcli),
 	}
 
 	//configuation for controlling room
@@ -139,7 +139,7 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 		room_filter_c, inmap := room_duplicate_filter_targets[target_room]
 		if !inmap {
 			if target_room != c["matrix"]["room_id"] {
-				log.Println("filterMastodonStreamForRoom: joining room", target_room)
+				log.Println("taskFilterMastodonStreamForRoom: joining room", target_room)
 				if _, err := frc.mxcli.JoinRoom(target_room, "", nil); err != nil {
 					panic(err)
 				}
@@ -147,7 +147,7 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 			room_c := make(chan *mastodon.Status, 42)
 			//--> filter_ownposts_duplicates_c	-->	nil
 			//									\-> no_duplicate_status_c --> to additional rooms
-			room_filter_c, _ = frc.filterDuplicateStatus(target_room, room_c, nil)
+			room_filter_c, _ = frc.taskFilterDuplicateStatus(target_room, room_c, nil)
 			room_duplicate_filter_targets[target_room] = room_filter_c
 			go func() {
 				log.Println("writeMastodonFeedIntoAdditionalMatrixRooms: starting for", target_room)
@@ -156,7 +156,7 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 				}
 			}()
 		}
-		next_in_chain_ = filterMastodonStreamForRoom(frc, "feed2matrix_"+configname, room_filter_c, next_in_chain_)
+		next_in_chain_ = taskFilterMastodonStreamForRoom(frc, "feed2matrix_"+configname, room_filter_c, next_in_chain_)
 	}
 
 	no_duplicate_or_selfsent_status_c := make(chan *mastodon.Status, 42)
@@ -164,12 +164,12 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 
 	//--> filter_duplicates_and_selfsent_c	--> filter_ownposts_duplicates_c
 	//										\-> no_duplicate_or_selfsent_status_c --> to controlling room
-	filter_duplicates_and_selfsent_c, markseen_c := frc.filterDuplicateStatus("controlroom", no_duplicate_or_selfsent_status_c, nil)
+	filter_duplicates_and_selfsent_c, markseen_c := frc.taskFilterDuplicateStatus("controlroom", no_duplicate_or_selfsent_status_c, nil)
 
 	/// Filter Homestream for things sent from our account but not from controlling channel
 	//--> filter_ownposts_with_private_c		--> next_in_chain_
 	//											\-> filter_duplicates_and_selfsent_c
-	filter_ownposts_with_private_c := frc.pickStatusFromChannel(StatusFilterConfig{
+	filter_ownposts_with_private_c := frc.taskPickStatusFromChannel(StatusFilterConfig{
 		debugname:                  "controlroom",
 		must_have_one_of_tag_names: nil,
 		check_tagnames:             false,
@@ -189,18 +189,18 @@ func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.
 	}
 	//--> homestream		--> filter_ownposts_c
 	//						\-> notification2myroom_c
-	go frc.goSplitMastodonEventStream(homestream, filter_ownposts_with_private_c, notification2myroom_c)
+	go frc.runSplitMastodonEventStream(homestream, filter_ownposts_with_private_c, notification2myroom_c)
 
 	//subscribe tags in addition to home stream
 	for _, tag := range subscribe_tagstreams {
-		log.Println("writeMastodonBackIntoMatrixRooms: subscribing tag", tag)
+		log.Println("taskWriteMastodonBackIntoMatrixRooms: subscribing tag", tag)
 		tagstream, err := mclient.StreamingHashtag(context.Background(), tag, false)
 		if err != nil {
 			panic(err)
 		}
 		//--> tagstream			--> next_in_chain_
 		//						\-> nil
-		go frc.goSplitMastodonEventStream(tagstream, next_in_chain_, nil)
+		go frc.runSplitMastodonEventStream(tagstream, next_in_chain_, nil)
 	}
 
 	//goroutine writing stuff to controlling room

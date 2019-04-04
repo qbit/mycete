@@ -114,9 +114,8 @@ type MxContentUrlFuture struct {
 // 	imgurl string
 // 	mxcurl string
 // }
-
-//TODO: don't be a memory hog
-func task_UploadImageLinksToMatrix(mxcli *gomatrix.Client) chan<- MxContentUrlFuture {
+/// TODO: don't be a memory hog
+func taskUploadImageLinksToMatrix(mxcli *gomatrix.Client) chan<- MxContentUrlFuture {
 	futures_chan := make(chan MxContentUrlFuture, 42)
 	go func() {
 		mx_link_store := make(map[string]string, 50)
