@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"strings"
 
 	mastodon "github.com/mattn/go-mastodon"
@@ -18,7 +19,7 @@ func formatUserNameForMatrix(acct mastodon.Account) string {
 	if sender2 := strings.TrimSpace(tagstripper.Sanitize(acct.Username)); len(sender2) > 0 {
 		return sender2
 	}
-	sender1 := strings.TrimSpace(tagstripper.Sanitize(acct.Acct))
+	sender1 := strings.TrimSpace(html.UnescapeString(tagstripper.Sanitize(acct.Acct)))
 	return sender1
 }
 
@@ -30,7 +31,7 @@ func formatStatusForMatrix(status *mastodon.Status) string {
 
 	sender := formatUserNameForMatrix(status.Account)
 	contenttext := tagstripper.Sanitize(status.Content)
-	contenttext = strings.ReplaceAll(contenttext, "<br/>", "\n")
+	contenttext = html.UnescapeString(strings.TrimSpace(strings.ReplaceAll(contenttext, "<br/>", "\n")))
 	url := status.URL
 
 	if len(contenttext) > matrix_notice_character_limit_ {
