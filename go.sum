@@ -6,6 +6,10 @@ github.com/azr/backoff v0.0.0-20160115115103-53511d3c7330 h1:ekDALXAVvY/Ub1UtNta
 github.com/azr/backoff v0.0.0-20160115115103-53511d3c7330/go.mod h1:nH+k0SvAt3HeiYyOlJpLLv1HG1p7KWP7qU9QPp2/pCo=
 github.com/btittelbach/go-mastodon v0.0.3 h1:B8VUYp2bXDRgSMzT5YwN/68uuVpHfTpQDw0iNOv9/5U=
 github.com/btittelbach/go-mastodon v0.0.3/go.mod h1:jXICwkLmrp1qqQ9TLNPfqqzEcinOFfs4nXJbXnjnX/Y=
+github.com/btittelbach/gomatrix v0.0.0-20190130130140-385f072fe9af h1:YDTxeLn9VNqnkk+dXY0bnCEO5l++00ebvppFC/IMnIo=
+github.com/btittelbach/gomatrix v0.0.0-20190130130140-385f072fe9af/go.mod h1:0VRF8Um+5nTL1wpOfDZeiwRz6s/ieTi/rqsbfx4L0p0=
+github.com/btittelbach/gomatrix v0.0.0-20190407020023-296a9a2eb860 h1:9C66PavG3RT762ZLdc/tYClcMmJo2iStc+YR/nWIMrY=
+github.com/btittelbach/gomatrix v0.0.0-20190407020023-296a9a2eb860/go.mod h1:0VRF8Um+5nTL1wpOfDZeiwRz6s/ieTi/rqsbfx4L0p0=
 github.com/dustin/go-jsonpointer v0.0.0-20160814072949-ba0abeacc3dc h1:tP7tkU+vIsEOKiK+l/NSLN4uUtkyuxc6hgYpQeCWAeI=
 github.com/dustin/go-jsonpointer v0.0.0-20160814072949-ba0abeacc3dc/go.mod h1:ORH5Qp2bskd9NzSfKqAF7tKfONsEkCarTE5ESr/RVBw=
 github.com/dustin/gojson v0.0.0-20160307161227-2e71ec9dd5ad h1:Qk76DOWdOp+GlyDKBAG3Klr9cn7N+LcYc82AZ2S7+cA=

@@ -18,3 +18,5 @@ require (
 	golang.org/x/sys v0.0.0-20190402142545-baf5eb976a8c
 	golang.org/x/tools v0.0.0-20190402200628-202502a5a924 // indirect
 )
+
+replace github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af => github.com/btittelbach/gomatrix v0.0.0-20190407020023-296a9a2eb860

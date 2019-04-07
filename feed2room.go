@@ -36,14 +36,30 @@ func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom s
 				if len(imgurl) == 0 {
 					imgurl = attachment.PreviewURL
 				}
+				if len(imgurl) == 0 {
+					continue // skip attachment since there is no URL
+				}
 				content_data := frc.uploadImageLinkToMatrix(imgurl)
+				thumbnail_content_data := MxUploadedImageInfo{}
+				if len(attachment.PreviewURL) > 0 {
+					if attachment.PreviewURL != imgurl {
+						thumbnail_content_data = frc.uploadImageLinkToMatrix(attachment.PreviewURL)
+					} else {
+						thumbnail_content_data = content_data
+					}
+				}
 				if len(content_data.mxcurl) > 0 && content_data.err == nil {
+					imginfo := gomatrix.ImageInfo{Height: uint(attachment.Meta.Original.Height), Width: uint(attachment.Meta.Original.Width), Mimetype: content_data.mimetype, Size: uint(content_data.contentlength)}
+					if len(thumbnail_content_data.mxcurl) > 0 && thumbnail_content_data.err == nil {
+						imginfo.ThumbnailURL = thumbnail_content_data.mxcurl
+						imginfo.ThumbnailInfo = gomatrix.ThumbnailInfo{Height: uint(attachment.Meta.Small.Height), Width: uint(attachment.Meta.Small.Width), Mimetype: thumbnail_content_data.mimetype, Size: uint(thumbnail_content_data.contentlength)}
+					}
 					frc.mxcli.SendMessageEvent(mroom, "m.room.message",
 						gomatrix.ImageMessage{
 							MsgType: "m.image",
 							Body:    attachment.Description,
 							URL:     content_data.mxcurl,
-							Info:    gomatrix.ImageInfo{Height: uint(attachment.Meta.Original.Height), Width: uint(attachment.Meta.Original.Width), Mimetype: content_data.mimetype, Size: uint(content_data.contentlength)},
+							Info:    imginfo,
 						})
 
 				} else {
