@@ -49,6 +49,10 @@ func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom s
 					}
 				}
 				if len(content_data.mxcurl) > 0 && content_data.err == nil {
+					bodytext := attachment.Description
+					if len(bodytext) == 0 {
+						bodytext = status.URL
+					}
 					imginfo := gomatrix.ImageInfo{Height: uint(attachment.Meta.Original.Height), Width: uint(attachment.Meta.Original.Width), Mimetype: content_data.mimetype, Size: uint(content_data.contentlength)}
 					if len(thumbnail_content_data.mxcurl) > 0 && thumbnail_content_data.err == nil {
 						imginfo.ThumbnailURL = thumbnail_content_data.mxcurl
@@ -57,7 +61,7 @@ func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom s
 					frc.mxcli.SendMessageEvent(mroom, "m.room.message",
 						gomatrix.ImageMessage{
 							MsgType: "m.image",
-							Body:    attachment.Description,
+							Body:    bodytext,
 							URL:     content_data.mxcurl,
 							Info:    imginfo,
 						})
