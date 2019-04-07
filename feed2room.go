@@ -25,7 +25,9 @@ func (frc *FeedRoomConnector) uploadImageLinkToMatrix(imgurl string) MxUploadedI
 
 func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom string) {
 	log.Println("writeStatusToRoom:", "status:", status.ID, "to room:", mroom)
-	frc.mxcli.SendNotice(mroom, formatStatusForMatrix(status))
+	text, htmltext := formatStatusForMatrix(status)
+	frc.mxcli.SendMessageEvent(mroom, "m.room.message", gomatrix.HTMLMessage{MsgType: "m.notice", Format: "org.matrix.custom.html", Body: text, FormattedBody: htmltext})
+
 	if status.MediaAttachments != nil && len(status.MediaAttachments) > 0 && len(status.MediaAttachments) <= feed2matrx_image_count_limit_ {
 		for _, attachment := range status.MediaAttachments {
 			if attachment.Type == "image" || attachment.Type == "gifv" {

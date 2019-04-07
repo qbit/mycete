@@ -83,6 +83,16 @@ filter_unfollowed=true
 
 ```
 
+## Linking to Mastodon
+
+
+
+### required permissions
+read:accounts read:blocks read:favourites read:filters read:follows read:lists read:mutes read:notifications read:search read:statuses write:conversations write:favourites write:filters write:media write:statuses push
+
+## Linking to Twitter
+
+
 ## TODO
 
 - [ ] create an interface for clients.
