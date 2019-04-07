@@ -98,7 +98,8 @@ read:accounts read:blocks read:favourites read:filters read:follows read:lists r
 - [ ] create an interface for clients.
 - [X] TravisCI.
 - [X] Read the timelines back into the matrix room.
-- [ ] favorite and reblog Mastodon status
+- [X] favorite and reblog Mastodon status
+- [ ] un-reblog and un-favourite when redacting matrix message
 - [ ] tests
 - [ ] Document the process for getting api keys.
 - [ ] Only establish our oauth / auth stuff when a service is enabled.
