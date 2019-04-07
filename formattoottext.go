@@ -21,48 +21,53 @@ func formatUserNameForMatrix(acct mastodon.Account) string {
 	return sender1
 }
 
-func formatStatusForMatrix(status *mastodon.Status) (body, htmlbody string) {
-	// sender:=status.Account.Username
-	// sender:=status.Account.Acct
+func sanitizeFormatStatusForMatrix(status *mastodon.Status) (url, body, htmlbody string) {
 	tagstripper := bluemonday.NewPolicy()
 	tagstripper.AllowElements("br")
+	tagstripper_html := bluemonday.NewPolicy()
+	tagstripper_html.AllowElements("br", "strike", "em", "i", "b", "strong", "code", "tt", "p")
 
-	sender := formatUserNameForMatrix(status.Account)
-	htmlbody = tagstripper.Sanitize(status.Content)
-	body = html.UnescapeString(strings.TrimSpace(strings.ReplaceAll(htmlbody, "<br/>", "\n")))
-	url := status.URL
+	htmlbody = tagstripper_html.Sanitize(status.Content)
+	body = html.UnescapeString(strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(tagstripper.Sanitize(status.Content), "<br>", "\n"), "<br/>", "\n")))
+	url = status.URL
 
 	if len(body) > matrix_notice_character_limit_ {
 		body = body[0:matrix_notice_character_limit_] + "..."
 	}
 
-	body = fmt.Sprintf("%s> %s\n%s", sender, body, url)
-	htmlbody = fmt.Sprintf("<u>%s</u>&gt;<br/><p>%s</p><a href=\"%s\" style=\"font-size:80%%;\">%s</a>", sender, htmlbody, url, url)
 	return
 }
 
-func formatNotificationForMatrix(notification *mastodon.Notification) string {
-	// sender:=status.Account.Username
-	// sender:=status.Account.Acct
-	tagstripper := bluemonday.NewPolicy()
-	tagstripper.AllowElements("br")
+func formatStatusForMatrix(status *mastodon.Status) (body, htmlbody string) {
+	sender := formatUserNameForMatrix(status.Account)
+	url, body, htmlbody := sanitizeFormatStatusForMatrix(status)
+
+	body = fmt.Sprintf("%s [ %s ]>\n%s", sender, url, body)
+	htmlbody = fmt.Sprintf("<u><strong>%s</strong> writes in <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, url, url, htmlbody)
+	return
+}
+
+func formatNotificationForMatrix(notification *mastodon.Notification) (body, htmlbody string) {
 	sender := formatUserNameForMatrix(notification.Account)
-	contenttext := ""
-	url := ""
+	var content_text string
+	var content_html string
+	var url string
 	if notification.Status != nil {
-		url = notification.Status.URL
-		contenttext = tagstripper.Sanitize(notification.Status.Content)
-		contenttext = strings.ReplaceAll(contenttext, "<br/>", "\n")
+		url, content_text, content_html = sanitizeFormatStatusForMatrix(notification.Status)
 	}
 	switch notification.Type {
 	case "mention":
-		return fmt.Sprintf("%s mentioned you:\n%s\n%s", sender, contenttext, url)
+		body = fmt.Sprintf("%s mentioned you [ in ]:\n%s\n%s", sender, url, content_text)
+		htmlbody = fmt.Sprintf("<u><strong>%s</strong> mentioned you in <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, url, url, content_html)
 	case "reblog":
-		return fmt.Sprintf("%s reblogged your Status\n%s", sender, url)
+		body = fmt.Sprintf("%s reblogged your status [ %s ]", sender, url)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> reblogged your status <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, url, url)
 	case "favourite":
-		return fmt.Sprintf("%s favourited your Status\n%s", sender, url)
+		body = fmt.Sprintf("%s favourited your status [ %s ]", sender, url)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> favourited your status <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, url, url)
 	case "follow":
-		return fmt.Sprintf("%s is following you now", sender)
+		body = fmt.Sprintf("%s is following you now", sender)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> is following you now", sender)
 	}
-	return ""
+	return
 }

@@ -23,6 +23,12 @@ func (frc *FeedRoomConnector) uploadImageLinkToMatrix(imgurl string) MxUploadedI
 	return <-future
 }
 
+func (frc *FeedRoomConnector) writeNotificationToRoom(notification *mastodon.Notification, mroom string) {
+	log.Println("writeNotificationToRoom:", mroom)
+	text, htmltext := formatNotificationForMatrix(notification)
+	frc.mxcli.SendMessageEvent(mroom, "m.room.message", gomatrix.HTMLMessage{MsgType: "m.notice", Format: "org.matrix.custom.html", Body: text, FormattedBody: htmltext})
+}
+
 func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom string) {
 	log.Println("writeStatusToRoom:", "status:", status.ID, "to room:", mroom)
 	text, htmltext := formatStatusForMatrix(status)
@@ -221,7 +227,7 @@ func taskWriteMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomat
 			select {
 			case notification := <-notification2myroom_c:
 				if show_own_toots_from_foreign_clients || show_complete_home_stream {
-					mxNotify(mxcli, "writePublishedFeedsIntoControllingRoom Notifcation", formatNotificationForMatrix(notification))
+					frc.writeNotificationToRoom(notification, c["matrix"]["room_id"])
 				}
 			case foreignsentstatus := <-no_duplicate_or_selfsent_status_c:
 				if show_mastodon_notifications {

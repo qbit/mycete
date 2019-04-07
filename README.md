@@ -109,4 +109,4 @@ read:accounts read:blocks read:favourites read:filters read:follows read:lists r
 - [ ] support uploading multiple images per Toot/Tweet
 - [X] more feedback and user error guards
 - [ ] use constrained memory, not slowly ever growing maps. Aka don't be a memory hog
-- [ ] twitter stream to matrix, favorite and reblog
+- [ ] twitter stream to matrix, favorite and retweet
