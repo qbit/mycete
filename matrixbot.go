@@ -15,20 +15,11 @@ import (
 )
 
 var (
-	guard_prefix_           string
-	reblog_cmd_             string
-	favourite_cmd_          string
 	mastodon_status_uri_re_ *regexp.Regexp
 	twitter_status_uri_re_  *regexp.Regexp
 )
 
 func init() {
-	guard_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "guard_prefix", ""))
-	reblog_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "reblog_cmd", "reblog>"))
-	favourite_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "favourite_cmd", "+1>"))
-	if guard_prefix_ == reblog_cmd_ || reblog_cmd_ == favourite_cmd_ || favourite_cmd_ == guard_prefix_ {
-		panic("ERROR: guard_prefix, reblog_cmd or favourite_cmd MUST differ")
-	} //https://chaos.social/@realraum/101880653017828628
 	mastodon_status_uri_re_ = regexp.MustCompile(`^https?://[^/]+/@\w+/(\d+)$`)
 	twitter_status_uri_re_ = regexp.MustCompile(`^https?://twitter\.com/.+/status(?:es)?/(\d+)$`)
 }

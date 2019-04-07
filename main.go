@@ -7,33 +7,32 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/gokyle/goconfig"
 	"github.com/qbit/mycete/protector"
 )
 
-var c goconfig.ConfigMap
-var err error
-var temp_image_files_dir_ string
-var feed2matrx_image_bytes_limit_ int64
-var feed2matrx_image_count_limit_ int
-
-func init() {
-	var err error
-	if feed2matrx_image_bytes_limit_, err = strconv.ParseInt(c.GetValueDefault("feed2matrix", "imagebyteslimit", "4194304"), 10, 64); err != nil {
-		panic(err)
-	}
-	if feed2matrx_image_count_limit_, err = strconv.Atoi(c.GetValueDefault("feed2matrix", "imagecountlimit", "8")); err != nil {
-		panic(err)
-	}
-}
+/// Configuration Globals
+var (
+	c                              goconfig.ConfigMap
+	temp_image_files_dir_          string
+	feed2matrx_image_bytes_limit_  int64
+	feed2matrx_image_count_limit_  int
+	matrix_notice_character_limit_ int = 1000
+	guard_prefix_                  string
+	reblog_cmd_                    string
+	favourite_cmd_                 string
+)
 
 /// Function Name Coding Standard
 /// func runMyFunction    ... function that does not return and could be run a gorouting, e.g. go runMyFunction
 /// func taskMyFunction  ... function that internally lauches a goroutine
 
 func main() {
+	var err error
+
 	cfile := flag.String("conf", "/etc/mycete.conf", "Configuration file")
 	flag.Parse()
 
@@ -45,6 +44,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	///////////////////////////////////////////////////////////
+	//// pre-read and initialize gloabl configuration variables
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
 		temp_image_files_dir_, err = ioutil.TempDir(c.GetValueDefault("images", "temp_dir", "/tmp"), "mycete")
 		if err != nil {
@@ -62,9 +63,26 @@ func main() {
 		}
 	}
 
+	if feed2matrx_image_bytes_limit_, err = strconv.ParseInt(c.GetValueDefault("feed2matrix", "imagebyteslimit", "4194304"), 10, 64); err != nil {
+		panic(err)
+	}
+	if feed2matrx_image_count_limit_, err = strconv.Atoi(c.GetValueDefault("feed2matrix", "imagecountlimit", "8")); err != nil {
+		panic(err)
+	}
+
+	guard_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "guard_prefix", "t>"))
+	reblog_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "reblog_cmd", "reblog>"))
+	favourite_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "favourite_cmd", "+1>"))
+	if guard_prefix_ == reblog_cmd_ || reblog_cmd_ == favourite_cmd_ || favourite_cmd_ == guard_prefix_ {
+		panic("ERROR: guard_prefix, reblog_cmd or favourite_cmd MUST differ")
+	} //https://chaos.social/@realraum/101880653017828628
+
+	///////////////////////////////////////////////////////////
+	//// Start Bot and all Sub-Go-Routines
 	go runMatrixPublishBot()
 
-	///wait until Signal
+	///////////////////////////////////////////////////////////
+	//// wait until Signal, then quit
 	{
 		ctrlc_c := make(chan os.Signal, 1)
 		signal.Notify(ctrlc_c, os.Interrupt, os.Kill, syscall.SIGTERM)
