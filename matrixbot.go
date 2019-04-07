@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -14,9 +15,11 @@ import (
 )
 
 var (
-	guard_prefix_  string
-	reblog_cmd_    string
-	favourite_cmd_ string
+	guard_prefix_           string
+	reblog_cmd_             string
+	favourite_cmd_          string
+	mastodon_status_uri_re_ *regexp.Regexp
+	twitter_status_uri_re_  *regexp.Regexp
 )
 
 func init() {
@@ -25,7 +28,9 @@ func init() {
 	favourite_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "favourite_cmd", "+1>"))
 	if guard_prefix_ == reblog_cmd_ || reblog_cmd_ == favourite_cmd_ || favourite_cmd_ == guard_prefix_ {
 		panic("ERROR: guard_prefix, reblog_cmd or favourite_cmd MUST differ")
-	}
+	} //https://chaos.social/@realraum/101880653017828628
+	mastodon_status_uri_re_ = regexp.MustCompile(`^https?://[^/]+/@\w+/(\d+)$`)
+	twitter_status_uri_re_ = regexp.MustCompile(`^https?://twitter\.com/.+/status(?:es)?/(\d+)$`)
 }
 
 func mxNotify(client *gomatrix.Client, from, msg string) {
@@ -83,7 +88,7 @@ func runMatrixPublishBot() {
 					if strings.HasPrefix(post, reblog_cmd_) {
 					} else if strings.HasPrefix(post, favourite_cmd_) {
 						//TODO: accept strings in form:
-						// - url (where we can detect twitter or mastodon)
+						// ✓ url (where we can detect twitter or mastodon)
 						// ✓ "toot <ID>" --> mastodon
 						// ✓ "status <ID>" --> mastdon
 						// ✓ "tweet <ID>" --> twitter
@@ -91,22 +96,51 @@ func runMatrixPublishBot() {
 						// - last --> favorite the last received toot or tweet
 						args := strings.SplitN(strings.TrimSpace(post[len(favourite_cmd_):]), " ", 3)
 						if len(args) > 1 {
-							postid, err := strconv.ParseInt(args[1], 10, 64)
-							if err != nil || postid <= 0 {
-								mxNotify(mxcli, "favorite", "Sorry, can't parse that ID gives as 2nd argument")
-								return
-							}
 							switch strings.ToLower(args[0]) {
 							case "toot", "status":
-								if _, err = mclient.Favourite(context.Background(), mastodon.ID(postid)); err != nil {
-									mxNotify(mxcli, "favorite", fmt.Sprintf("error while favouring toot %d: %s", postid, err.Error()))
+								if _, err = mclient.Favourite(context.Background(), mastodon.ID(args[1])); err != nil {
+									mxNotify(mxcli, "favorite", fmt.Sprintf("error while favouring toot %s: %s", args[1], err.Error()))
+									return
 								}
 							case "tweet", "birdsite":
+								postid, err := strconv.ParseInt(args[1], 10, 64)
+								if err != nil || postid <= 0 {
+									mxNotify(mxcli, "favorite", fmt.Sprintf("Sorry, can't parse that ID given as 2nd argument: %s", err))
+									return
+								}
 								if _, err = tclient.Favorite(postid); err != nil {
 									mxNotify(mxcli, "favorite", fmt.Sprintf("error while favouring tweet %d: %s", postid, err.Error()))
+									return
 								}
 							}
+						} else if len(args) == 1 {
+							if args[0] == "last" {
+								mxNotify(mxcli, "favorite", "Sorry, not implemented yet") //TODO
+								return
+							} else if matchlist := mastodon_status_uri_re_.FindStringSubmatch(args[0]); len(matchlist) >= 2 {
+								if _, err = mclient.Favourite(context.Background(), mastodon.ID(matchlist[1])); err != nil {
+									mxNotify(mxcli, "favorite", fmt.Sprintf("error while favouring toot %s: %s", matchlist[1], err.Error()))
+									return
+								}
+							} else if matchlist := twitter_status_uri_re_.FindStringSubmatch(args[0]); len(matchlist) >= 2 {
+								postid, err := strconv.ParseInt(matchlist[1], 10, 64)
+								if err != nil || postid <= 0 {
+									mxNotify(mxcli, "favorite", fmt.Sprintf("Sorry, can't parse that ID in the URL: %s", err))
+									return
+								}
+								if _, err = tclient.Favorite(postid); err != nil {
+									mxNotify(mxcli, "favorite", fmt.Sprintf("error while favouring tweet %d: %s", postid, err.Error()))
+									return
+								}
+							} else {
+								mxNotify(mxcli, "favorite", "Please say "+favourite_cmd_+" followed by 'last', <status URL> or 'toot'/'tweet' <ID>")
+								return
+							}
+						} else {
+							mxNotify(mxcli, "favorite", "Please say "+favourite_cmd_+" followed by 'last', <status URL> or 'toot'/'tweet' <ID>")
+							return
 						}
+						mxNotify(mxcli, "favorite", "Ok, I favorited that status for you")
 					} else if strings.HasPrefix(post, guard_prefix_) {
 						post = strings.TrimSpace(post[len(guard_prefix_):])
 
