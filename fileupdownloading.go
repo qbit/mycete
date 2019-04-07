@@ -104,9 +104,29 @@ func hashNickToPath(matrixnick string) string {
 	return path.Join(temp_image_files_dir_, hex.EncodeToString(shasum))
 }
 
+type MxUploadedImageInfo struct {
+	mxcurl        string
+	mimetype      string
+	contentlength int64
+}
+
 type MxContentUrlFuture struct {
 	imgurl          string
-	future_mxcurl_c chan string
+	future_mxcurl_c chan MxUploadedImageInfo
+}
+
+func matrixUploadLink(mxcli *gomatrix.Client, url string) (*gomatrix.RespMediaUpload, string, int64, error) {
+	response, err := mxcli.Client.Get(url)
+	if response != nil {
+		defer response.Body.Close()
+	}
+	if err != nil {
+		return nil, "", 0, err
+	}
+	mimetype := response.Header.Get("Content-Type")
+	clength := response.ContentLength
+	rmu, err := mxcli.UploadToContentRepo(response.Body, mimetype, clength)
+	return rmu, mimetype, clength, err
 }
 
 ///TODO: use short fixed roundbuffer array instead of map. unlikely we will encounter the same imgurl twice in a long time.
@@ -118,15 +138,18 @@ type MxContentUrlFuture struct {
 func taskUploadImageLinksToMatrix(mxcli *gomatrix.Client) chan<- MxContentUrlFuture {
 	futures_chan := make(chan MxContentUrlFuture, 42)
 	go func() {
-		mx_link_store := make(map[string]string, 50)
+		mx_link_store := make(map[string]MxUploadedImageInfo, 50)
 		for future := range futures_chan {
-			resp := ""
-			if savedimg, inmap := mx_link_store[future.imgurl]; inmap {
-				resp = savedimg
+			resp := MxUploadedImageInfo{}
+			if saveddata, inmap := mx_link_store[future.imgurl]; inmap {
+				resp = saveddata
 			} else { // else upload it
-				if resp_media_up, err := mxcli.UploadLink(future.imgurl); err == nil {
-					mx_link_store[future.imgurl] = resp_media_up.ContentURI
-					resp = resp_media_up.ContentURI
+
+				if resp_media_up, mimetype, clength, err := matrixUploadLink(mxcli, future.imgurl); err == nil {
+					resp.mxcurl = resp_media_up.ContentURI
+					resp.contentlength = clength
+					resp.mimetype = mimetype
+					mx_link_store[future.imgurl] = resp
 				} else {
 					log.Printf("uploadImageLinksToMatrix Error: url: %s, error: %s", future.imgurl, err.Error())
 				}

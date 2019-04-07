@@ -31,8 +31,8 @@ func init() {
 	}
 }
 
-func (frc *FeedRoomConnector) uploadImageLinkToMatrix(imgurl string) string {
-	future := make(chan string, 3)
+func (frc *FeedRoomConnector) uploadImageLinkToMatrix(imgurl string) MxUploadedImageInfo {
+	future := make(chan MxUploadedImageInfo, 3)
 	frc.mxlinkupload_c <- MxContentUrlFuture{imgurl: imgurl, future_mxcurl_c: future}
 	return <-future
 }
@@ -51,9 +51,19 @@ func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom s
 					if len(imgurl) == 0 {
 						imgurl = attachment.PreviewURL
 					}
-					content_uri := frc.uploadImageLinkToMatrix(imgurl)
-					if len(content_uri) > 0 {
-						frc.mxcli.SendImage(mroom, attachment.Description, content_uri)
+					content_data := frc.uploadImageLinkToMatrix(imgurl)
+					if len(content_data.mxcurl) > 0 {
+						if int64(img_origsize) != content_data.contentlength {
+							log.Printf("WARNING: Image Size given by Mastodon and by Mastodon HTTP Server disagree: %d != %d", img_origsize, content_data.contentlength)
+						}
+						frc.mxcli.SendMessageEvent(mroom, "m.room.message",
+							gomatrix.ImageMessage{
+								MsgType: "m.image",
+								Body:    attachment.Description,
+								URL:     content_data.mxcurl,
+								Info:    gomatrix.ImageInfo{Height: uint(attachment.Meta.Original.Height), Width: uint(attachment.Meta.Original.Width), Mimetype: content_data.mimetype, Size: uint(content_data.contentlength)},
+							})
+
 					} else {
 						log.Printf("writeStatusToRoom: Error uploading image: attachment: %+v, imgurl: %s", attachment, imgurl)
 					}
