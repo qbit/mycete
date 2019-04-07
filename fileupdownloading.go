@@ -108,6 +108,7 @@ type MxUploadedImageInfo struct {
 	mxcurl        string
 	mimetype      string
 	contentlength int64
+	err           error
 }
 
 type MxContentUrlFuture struct {
@@ -125,6 +126,9 @@ func matrixUploadLink(mxcli *gomatrix.Client, url string) (*gomatrix.RespMediaUp
 	}
 	mimetype := response.Header.Get("Content-Type")
 	clength := response.ContentLength
+	if clength > feed2matrx_image_bytes_limit_ {
+		return nil, "", 0, fmt.Errorf("media's size exceeds imagebyteslimit: %d > %d", clength, feed2matrx_image_bytes_limit_)
+	}
 	rmu, err := mxcli.UploadToContentRepo(response.Body, mimetype, clength)
 	return rmu, mimetype, clength, err
 }
@@ -144,13 +148,14 @@ func taskUploadImageLinksToMatrix(mxcli *gomatrix.Client) chan<- MxContentUrlFut
 			if saveddata, inmap := mx_link_store[future.imgurl]; inmap {
 				resp = saveddata
 			} else { // else upload it
-
 				if resp_media_up, mimetype, clength, err := matrixUploadLink(mxcli, future.imgurl); err == nil {
 					resp.mxcurl = resp_media_up.ContentURI
 					resp.contentlength = clength
 					resp.mimetype = mimetype
+					resp.err = err
 					mx_link_store[future.imgurl] = resp
 				} else {
+					resp.err = err
 					log.Printf("uploadImageLinksToMatrix Error: url: %s, error: %s", future.imgurl, err.Error())
 				}
 			}

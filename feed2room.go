@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/matrix-org/gomatrix"
@@ -18,19 +17,6 @@ import (
 //// 4. post all public mentions of UserMe to AdditionalMatrixRooms (filtered Home timeline)
 //// 5. optionally post all Status with certain tag to AdditionalMatrixRooms (filtered HashTag timeline)
 
-var feed2matrx_image_bytes_limit_ int
-var feed2matrx_image_count_limit_ int
-
-func init() {
-	var err error
-	if feed2matrx_image_bytes_limit_, err = strconv.Atoi(c.GetValueDefault("feed2matrix", "imagebyteslimit", "4194304")); err != nil {
-		panic(err)
-	}
-	if feed2matrx_image_count_limit_, err = strconv.Atoi(c.GetValueDefault("feed2matrix", "imagecountlimit", "8")); err != nil {
-		panic(err)
-	}
-}
-
 func (frc *FeedRoomConnector) uploadImageLinkToMatrix(imgurl string) MxUploadedImageInfo {
 	future := make(chan MxUploadedImageInfo, 3)
 	frc.mxlinkupload_c <- MxContentUrlFuture{imgurl: imgurl, future_mxcurl_c: future}
@@ -43,32 +29,25 @@ func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom s
 	if status.MediaAttachments != nil && len(status.MediaAttachments) > 0 && len(status.MediaAttachments) <= feed2matrx_image_count_limit_ {
 		for _, attachment := range status.MediaAttachments {
 			if attachment.Type == "image" || attachment.Type == "gifv" {
-				if img_origsize, err := strconv.Atoi(attachment.Meta.Original.Size); err != nil && img_origsize <= feed2matrx_image_bytes_limit_ {
-					imgurl := attachment.RemoteURL
-					if len(imgurl) == 0 {
-						imgurl = attachment.URL
-					}
-					if len(imgurl) == 0 {
-						imgurl = attachment.PreviewURL
-					}
-					content_data := frc.uploadImageLinkToMatrix(imgurl)
-					if len(content_data.mxcurl) > 0 {
-						if int64(img_origsize) != content_data.contentlength {
-							log.Printf("WARNING: Image Size given by Mastodon and by Mastodon HTTP Server disagree: %d != %d", img_origsize, content_data.contentlength)
-						}
-						frc.mxcli.SendMessageEvent(mroom, "m.room.message",
-							gomatrix.ImageMessage{
-								MsgType: "m.image",
-								Body:    attachment.Description,
-								URL:     content_data.mxcurl,
-								Info:    gomatrix.ImageInfo{Height: uint(attachment.Meta.Original.Height), Width: uint(attachment.Meta.Original.Width), Mimetype: content_data.mimetype, Size: uint(content_data.contentlength)},
-							})
+				imgurl := attachment.RemoteURL
+				if len(imgurl) == 0 {
+					imgurl = attachment.URL
+				}
+				if len(imgurl) == 0 {
+					imgurl = attachment.PreviewURL
+				}
+				content_data := frc.uploadImageLinkToMatrix(imgurl)
+				if len(content_data.mxcurl) > 0 && content_data.err == nil {
+					frc.mxcli.SendMessageEvent(mroom, "m.room.message",
+						gomatrix.ImageMessage{
+							MsgType: "m.image",
+							Body:    attachment.Description,
+							URL:     content_data.mxcurl,
+							Info:    gomatrix.ImageInfo{Height: uint(attachment.Meta.Original.Height), Width: uint(attachment.Meta.Original.Width), Mimetype: content_data.mimetype, Size: uint(content_data.contentlength)},
+						})
 
-					} else {
-						log.Printf("writeStatusToRoom: Error uploading image: attachment: %+v, imgurl: %s", attachment, imgurl)
-					}
 				} else {
-					log.Printf("ignoring image: %d < %d, %s", img_origsize, feed2matrx_image_bytes_limit_, err)
+					log.Printf("writeStatusToRoom: Image not uploaded: attachment: %+v, imgurl: %s, Err: %s", attachment, imgurl, content_data.err)
 				}
 			}
 		}

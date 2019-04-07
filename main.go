@@ -16,6 +16,18 @@ import (
 var c goconfig.ConfigMap
 var err error
 var temp_image_files_dir_ string
+var feed2matrx_image_bytes_limit_ int64
+var feed2matrx_image_count_limit_ int
+
+func init() {
+	var err error
+	if feed2matrx_image_bytes_limit_, err = strconv.ParseInt(c.GetValueDefault("feed2matrix", "imagebyteslimit", "4194304"), 10, 64); err != nil {
+		panic(err)
+	}
+	if feed2matrx_image_count_limit_, err = strconv.Atoi(c.GetValueDefault("feed2matrix", "imagecountlimit", "8")); err != nil {
+		panic(err)
+	}
+}
 
 /// Function Name Coding Standard
 /// func runMyFunction    ... function that does not return and could be run a gorouting, e.g. go runMyFunction
