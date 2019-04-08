@@ -16,6 +16,27 @@ to your various feeds!
 
 Optionaly, only stuff you prepend with a ''guard_prefix'' will be published. Obviously the prefix will be removed first.
 
+Delete tweets and toots you posted by redacting the corresponding matrix message.
+
+If you upload images to the controlling matrix room, they will be appended to your next toot and tweet.
+
+Tweets and Toots may be favoured or reblogged / retweeted by using the `reblog_cmd` or `favourite_cmd` (specified in the `[matrix]` section) followed by the status URL or ID
+
+
+## from Mastodon back to Matrix
+
+`mycete` will also (optinally) inform you about toots that did not originate from `mycete` as well as when someone favourites or reblogs your status and when someone follows you.
+
+The controlling settings are `show_mastodon_notifications`, `show_own_toots_from_foreign_clients` and 
+`show_complete_home_stream` in `[matrix]`
+
+Additionally it is possible to mirror your complete homestream or just part of it to other matrix rooms.
+For each room you may filter by tag, post visibility, sensitivity, weather it is an original toot or a reblog, weather our account posted it or someone else and weather or not we are following the author.
+
+To do this, create a separate configuration section for each room named `feed2matrix_xxxxx` where xxxxx is your name for that configuration. You can specify arbitrary many configurations, as only the ones listed in `[feed2matrix]configurations` are activated and used.
+
+In addition to the home stream, it is possible to subscribe tag streams using `[feed2matrix]subscribe_tagstreams` which will be mixed together with the homestream into one big stream which your configurations (s.a.) will then filter.
+
 ## Example Config
 
 ```
@@ -85,13 +106,14 @@ filter_unfollowed=true
 
 ## Linking to Mastodon
 
-
+When logged into your Mastodon Account in your web browser, go to "Settings", then "Development", then "Your Applications". Create a New Application and give it the required permissions. Put `Client key`, `Client secret` and `Your access token` the tokens into your 'mycete' configuration.
 
 ### required permissions
 read:accounts read:blocks read:favourites read:filters read:follows read:lists read:mutes read:notifications read:search read:statuses write:conversations write:favourites write:filters write:media write:statuses push
 
 ## Linking to Twitter
 
+Oauth via console pin. (TODO)
 
 ## TODO
 
