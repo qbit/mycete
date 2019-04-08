@@ -30,6 +30,33 @@ var (
 /// func runMyFunction    ... function that does not return and could be run a gorouting, e.g. go runMyFunction
 /// func taskMyFunction  ... function that internally lauches a goroutine
 
+func mainWithDefers() {
+	var err error
+	//// Create image temp dir if needed
+	if c.GetValueDefault("images", "enabled", "false") == "true" {
+		temp_image_files_dir_, err = ioutil.TempDir(c.GetValueDefault("images", "temp_dir", "/tmp"), "mycete")
+		if err != nil {
+			panic(err)
+		}
+		if err = os.Chmod(temp_image_files_dir_, 0700); err != nil {
+			panic(err)
+		}
+		defer os.RemoveAll(temp_image_files_dir_)
+	}
+
+	///////////////////////////////////////////////////////////
+	//// Start Bot and all Sub-Go-Routines
+	go runMatrixPublishBot()
+
+	///////////////////////////////////////////////////////////
+	//// wait until Signal, then quit
+	{
+		ctrlc_c := make(chan os.Signal, 1)
+		signal.Notify(ctrlc_c, os.Interrupt, os.Kill, syscall.SIGTERM)
+		<-ctrlc_c //block until ctrl+c is pressed || we receive SIGINT aka kill -1 || kill
+	}
+}
+
 func main() {
 	var err error
 
@@ -46,16 +73,6 @@ func main() {
 
 	///////////////////////////////////////////////////////////
 	//// pre-read and initialize gloabl configuration variables
-	if c.GetValueDefault("images", "enabled", "false") == "true" {
-		temp_image_files_dir_, err = ioutil.TempDir(c.GetValueDefault("images", "temp_dir", "/tmp"), "mycete")
-		if err != nil {
-			panic(err)
-		}
-		if err = os.Chmod(temp_image_files_dir_, 0700); err != nil {
-			panic(err)
-		}
-		defer os.RemoveAll(temp_image_files_dir_)
-	}
 
 	if c_charlimitstr, c_charlimitstr_set := c.GetValue("feed2matrix", "characterlimit"); c_charlimitstr_set && len(c_charlimitstr) > 0 {
 		if charlimit, err := strconv.Atoi(c_charlimitstr); err == nil {
@@ -66,7 +83,7 @@ func main() {
 	if feed2matrx_image_bytes_limit_, err = strconv.ParseInt(c.GetValueDefault("feed2matrix", "imagebyteslimit", "4194304"), 10, 64); err != nil {
 		panic(err)
 	}
-	if feed2matrx_image_count_limit_, err = strconv.Atoi(c.GetValueDefault("feed2matrix", "imagecountlimit", "8")); err != nil {
+	if feed2matrx_image_count_limit_, err = strconv.Atoi(c.GetValueDefault("feed2matrix", "imagecountlimit", "4")); err != nil {
 		panic(err)
 	}
 
@@ -77,16 +94,8 @@ func main() {
 		panic("ERROR: guard_prefix, reblog_cmd or favourite_cmd MUST differ")
 	} //https://chaos.social/@realraum/101880653017828628
 
-	///////////////////////////////////////////////////////////
-	//// Start Bot and all Sub-Go-Routines
-	go runMatrixPublishBot()
-
-	///////////////////////////////////////////////////////////
-	//// wait until Signal, then quit
-	{
-		ctrlc_c := make(chan os.Signal, 1)
-		signal.Notify(ctrlc_c, os.Interrupt, os.Kill, syscall.SIGTERM)
-		<-ctrlc_c //block until ctrl+c is pressed || we receive SIGINT aka kill -1 || kill
-		fmt.Println("Exiting")
-	}
+	////////////////////////////////////////////////////////////
+	//// run main Main where a defer will still be called before we exit
+	mainWithDefers()
+	fmt.Println("Exiting")
 }

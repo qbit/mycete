@@ -225,7 +225,7 @@ func runMatrixPublishBot() {
 
 							//remove saved image file if present. We only attach an image once.
 							if c.GetValueDefault("images", "enabled", "false") == "true" {
-								rmFile(ev.Sender)
+								rmAllUserFiles(ev.Sender)
 							}
 
 						}()
@@ -255,7 +255,7 @@ func runMatrixPublishBot() {
 							lock := getPerUserLock(ev.Sender)
 							lock.Lock()
 							defer lock.Unlock()
-							if err := saveMatrixFile(mxcli, ev.Sender, url); err != nil {
+							if err := saveMatrixFile(mxcli, ev.Sender, ev.ID, url); err != nil {
 								mxNotify(mxcli, "error", "Could not get your image! "+err.Error())
 								fmt.Println("ERROR downloading image:", err)
 								return
@@ -284,9 +284,9 @@ func runMatrixPublishBot() {
 				lock := getPerUserLock(ev.Sender)
 				lock.Lock()
 				defer lock.Unlock()
-				err := rmFile(ev.Sender)
+				err := rmFile(ev.Sender, ev.Redacts)
 				if err == nil {
-					mxNotify(mxcli, "redaction", fmt.Sprintf("%s's image has been redacted. Next toot/weet will not contain any image.", ev.Sender))
+					mxNotify(mxcli, "redaction", fmt.Sprintf("%s's image has been redacted. Next toot/weet will not contain that image.", ev.Sender))
 				}
 				if err != nil && !os.IsNotExist(err) {
 					log.Println("ERROR deleting image:", err)

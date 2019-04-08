@@ -40,14 +40,54 @@ func readFileIntoBase64(filepath string) (string, error) {
 	return base64.StdEncoding.EncodeToString(contents), nil
 }
 
-//TODO: limit number of files stored in /run/..
-func saveMatrixFile(cli *gomatrix.Client, nick, matrixurl string) error {
+func osGetLimitedNumElementsInDir(directory string) (int, error) {
+	f, err := os.Open(directory)
+	if err != nil {
+		return 0, err
+	}
+	fileInfo, err := f.Readdir(feed2matrx_image_count_limit_ + 1)
+	f.Close()
+	if err != nil && err != io.EOF {
+		return 0, err
+	}
+	return len(fileInfo), nil
+}
+
+func getUserFileList(nick string) ([]string, error) {
+	userdir := hashNickToUserDir(nick)
+	f, err := os.Open(userdir)
+	if err != nil {
+		return nil, err
+	}
+	names, err := f.Readdirnames(feed2matrx_image_count_limit_)
+	f.Close()
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+	fullnames := make([]string, len(names))
+	for idx, filename := range names {
+		fullnames[idx] = path.Join(userdir, filename)
+	}
+	return fullnames, nil
+}
+
+func saveMatrixFile(cli *gomatrix.Client, nick, eventid, matrixurl string) error {
 	if !strings.Contains(matrixurl, "mxc://") {
 		return fmt.Errorf("image url not a matrix content mxc://..  uri")
 	}
 	matrixmediaurlpart := strings.Split(matrixurl, "mxc://")[1]
-	imgfilepath := hashNickToPath(nick)
+	userdir, imgfilepath := hashNickAndEventIdToPath(nick, eventid)
+	os.MkdirAll(userdir, 0700)
 	imgtmpfilepath := imgfilepath + ".tmp"
+
+	/// limit number of files per user
+	numfiles, err := osGetLimitedNumElementsInDir(userdir)
+	if err != nil {
+		return err
+	}
+	if numfiles >= feed2matrx_image_count_limit_ {
+		return fmt.Errorf("Too many files stored. %d is the limit.", feed2matrx_image_count_limit_)
+	}
 
 	/// Create the file (implies truncate)
 	fh, err := os.OpenFile(imgtmpfilepath, os.O_WRONLY|os.O_CREATE, 0400)
@@ -90,18 +130,31 @@ func saveMatrixFile(cli *gomatrix.Client, nick, matrixurl string) error {
 	return nil
 }
 
-func rmFile(nick string) error {
+func rmFile(nick, eventid string) error {
 	// log.Println("removing file for", nick)
-	return os.Remove(hashNickToPath(nick))
+	_, fpath := hashNickAndEventIdToPath(nick, eventid)
+	return os.Remove(fpath)
+}
+
+func rmAllUserFiles(nick string) error {
+	return os.RemoveAll(hashNickToUserDir(nick))
 }
 
 /// return hex(sha256()) of string
 /// used so malicous user can't use malicous filename that is defined by nick. (and hash collision or guessing not so big a threat here.)
-func hashNickToPath(matrixnick string) string {
+func hashNickToUserDir(matrixnick string) string {
 	shasum := make([]byte, sha256.Size)
 	shasum32 := sha256.Sum256([]byte(matrixnick))
 	copy(shasum[0:sha256.Size], shasum32[0:sha256.Size])
 	return path.Join(temp_image_files_dir_, hex.EncodeToString(shasum))
+}
+
+func hashNickAndEventIdToPath(matrixnick, eventid string) (string, string) {
+	shasum := make([]byte, sha256.Size)
+	shasum32 := sha256.Sum256([]byte(eventid))
+	copy(shasum[0:sha256.Size], shasum32[0:sha256.Size])
+	userdir := hashNickToUserDir(matrixnick)
+	return userdir, path.Join(userdir, hex.EncodeToString(shasum))
 }
 
 type MxUploadedImageInfo struct {

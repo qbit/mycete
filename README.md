@@ -106,7 +106,7 @@ read:accounts read:blocks read:favourites read:filters read:follows read:lists r
 - [ ] Post to RSS for blogging? (Mastodon already does rss out of the box)
 - [ ] Error early if our service is enabled and we have invalid credentials. (See if there is API for testing?)
 - [X] post images
-- [ ] support uploading multiple images per Toot/Tweet
+- [X] support uploading multiple images per Toot/Tweet
 - [X] more feedback and user error guards
 - [ ] use constrained memory, not slowly ever growing maps. Aka don't be a memory hog
 - [ ] twitter stream to matrix, favorite and retweet
