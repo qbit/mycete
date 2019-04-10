@@ -121,7 +121,7 @@ Oauth via console pin. (TODO)
 - [X] TravisCI.
 - [X] Read the timelines back into the matrix room.
 - [X] favorite and reblog Mastodon status
-- [ ] un-reblog and un-favourite when redacting matrix message
+- [X] un-reblog and un-favourite when redacting matrix message
 - [ ] tests
 - [ ] Document the process for getting api keys.
 - [ ] Only establish our oauth / auth stuff when a service is enabled.

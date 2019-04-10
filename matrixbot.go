@@ -133,6 +133,10 @@ func runMatrixPublishBot() {
 						if err := parseReblogFavouriteArgs(reblog_cmd_, post, mxcli,
 							func(statusid string) error {
 								_, err := mclient.Reblog(context.Background(), mastodon.ID(statusid))
+								if err == nil {
+									rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TootID: mastodon.ID(statusid), Action: actionReblog}}
+								}
+
 								return err
 							},
 							func(postidstr string) error {
@@ -144,6 +148,10 @@ func runMatrixPublishBot() {
 									return fmt.Errorf("Sorry could not parse status id")
 								}
 								_, err = tclient.Retweet(postid, true)
+								if err == nil {
+									rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TweetID: postid, Action: actionReblog}}
+								}
+
 								return err
 							},
 						); err == nil {
@@ -158,6 +166,9 @@ func runMatrixPublishBot() {
 						err := parseReblogFavouriteArgs(favourite_cmd_, post, mxcli,
 							func(statusid string) error {
 								_, err := mclient.Favourite(context.Background(), mastodon.ID(statusid))
+								if err == nil {
+									rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TootID: mastodon.ID(statusid), Action: actionFav}}
+								}
 								return err
 							},
 							func(postidstr string) error {
@@ -169,11 +180,15 @@ func runMatrixPublishBot() {
 									return fmt.Errorf("Sorry could not parse status id")
 								}
 								_, err = tclient.Favorite(postid)
+								if err == nil {
+									rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TweetID: postid, Action: actionFav}}
+								}
 								return err
 							},
 						)
 						if err == nil {
 							mxNotify(mxcli, "favourite", "Ok, I favourited that status for you")
+
 						} else {
 							mxNotify(mxcli, "favourite", fmt.Sprintf("error favouriting: %s", err.Error()))
 						}
@@ -221,7 +236,7 @@ func runMatrixPublishBot() {
 							}
 
 							//remember posted status IDs
-							rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusTripple{ev.Sender, mastodonid, twitterid}}
+							rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{ev.Sender, mastodonid, twitterid, actionPost}}
 
 							//remove saved image file if present. We only attach an image once.
 							if c.GetValueDefault("images", "enabled", "false") == "true" {
@@ -295,24 +310,66 @@ func runMatrixPublishBot() {
 			}()
 		}
 		go func() {
-			future_chan := make(chan *MsgStatusTripple, 1)
+			future_chan := make(chan *MsgStatusData, 1)
 			rums_retrieve_chan <- RUMSRetrieveMsg{key: ev.Redacts, future: future_chan}
 			rums_ptr := <-future_chan
 			if rums_ptr == nil {
 				return
 			}
 			if c.GetValueDefault("matrix", "admins_can_redact_user_status", "false") == "true" || rums_ptr.MatrixUser == ev.Sender {
-				if _, err := tclient.DeleteTweet(rums_ptr.TweetID, true); err == nil {
-					mxNotify(mxcli, "redaction", "Ok, I deleted that tweet for you")
-				} else {
-					log.Println("RedactTweetERROR:", err)
-					mxNotify(mxcli, "redaction", "Could not redact your tweet")
-				}
-				if err := mclient.DeleteStatus(context.Background(), rums_ptr.TootID); err == nil {
-					mxNotify(mxcli, "redaction", "Ok, I deleted that toot for you")
-				} else {
-					log.Println("RedactTweetERROR", err)
-					mxNotify(mxcli, "redaction", "Could not redact your toot")
+				switch rums_ptr.Action {
+				case actionPost:
+					if rums_ptr.TweetID > 0 {
+						if _, err := tclient.DeleteTweet(rums_ptr.TweetID, true); err == nil {
+							mxNotify(mxcli, "redaction", "Ok, I deleted that tweet for you")
+						} else {
+							log.Println("RedactTweetERROR:", err)
+							mxNotify(mxcli, "redaction", "Could not redact your tweet")
+						}
+					}
+					if len(rums_ptr.TootID) > 0 {
+						if err := mclient.DeleteStatus(context.Background(), rums_ptr.TootID); err == nil {
+							mxNotify(mxcli, "redaction", "Ok, I deleted that toot for you")
+						} else {
+							log.Println("RedactTweetERROR", err)
+							mxNotify(mxcli, "redaction", "Could not redact your toot")
+						}
+					}
+				case actionReblog:
+					if rums_ptr.TweetID > 0 {
+						if _, err := tclient.UnRetweet(rums_ptr.TweetID, true); err == nil {
+							mxNotify(mxcli, "redaction", "Ok, I un-retweetet that tweet for you")
+						} else {
+							log.Println("RedactTweetERROR:", err)
+							mxNotify(mxcli, "redaction", "Could not redact your retweet")
+						}
+					}
+					if len(rums_ptr.TootID) > 0 {
+						if _, err := mclient.Unreblog(context.Background(), rums_ptr.TootID); err == nil {
+							mxNotify(mxcli, "redaction", "Ok, I un-reblogged that toot for you")
+						} else {
+							log.Println("RedactTweetERROR", err)
+							mxNotify(mxcli, "redaction", "Could not redact your reblog")
+						}
+					}
+				case actionFav:
+					if rums_ptr.TweetID > 0 {
+						if _, err := tclient.Unfavorite(rums_ptr.TweetID); err == nil {
+							mxNotify(mxcli, "redaction", "Ok, I removed your favor from that tweet")
+						} else {
+							log.Println("RedactTweetERROR:", err)
+							mxNotify(mxcli, "redaction", "Could not redact your favor")
+						}
+					}
+					if len(rums_ptr.TootID) > 0 {
+						if _, err := mclient.Unfavourite(context.Background(), rums_ptr.TootID); err == nil {
+							mxNotify(mxcli, "redaction", "Ok, I removed your favour from that toot")
+						} else {
+							log.Println("RedactTweetERROR", err)
+							mxNotify(mxcli, "redaction", "Could not redact your favour")
+						}
+					}
+
 				}
 			} else {
 				mxNotify(mxcli, "redaction", "Won't redact other users status for you! Set admins_can_redact_user_status=true if you disagree.")

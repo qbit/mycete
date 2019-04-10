@@ -2,27 +2,36 @@ package main
 
 import mastodon "github.com/mattn/go-mastodon"
 
-type MsgStatusTripple struct {
+type MsgStatusDataAction int
+
+const (
+	actionPost   MsgStatusDataAction = iota
+	actionReblog MsgStatusDataAction = iota
+	actionFav    MsgStatusDataAction = iota
+)
+
+type MsgStatusData struct {
 	MatrixUser string
 	TootID     mastodon.ID
 	TweetID    int64
+	Action     MsgStatusDataAction
 }
 
 type RUMSStoreMsg struct {
 	key  string
-	data MsgStatusTripple
+	data MsgStatusData
 }
 
 type RUMSRetrieveMsg struct {
 	key    string
-	future chan<- *MsgStatusTripple
+	future chan<- *MsgStatusData
 }
 
 func runRememberUsersMessageToStatus() (rv_store_chan chan<- RUMSStoreMsg, rv_retrieve_chan chan<- RUMSRetrieveMsg) {
 	store_chan := make(chan RUMSStoreMsg, 20)
 	retrieve_chan := make(chan RUMSRetrieveMsg, 20)
 	go func() {
-		brain := make(map[string]MsgStatusTripple, 100)
+		brain := make(map[string]MsgStatusData, 100)
 		for {
 			select {
 			case storeme, chanok := <-store_chan:
