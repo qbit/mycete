@@ -130,69 +130,71 @@ func runMatrixPublishBot() {
 					if strings.HasPrefix(post, reblog_cmd_) {
 						/// CMD Reblogging
 
-						if err := parseReblogFavouriteArgs(reblog_cmd_, post, mxcli,
-							func(statusid string) error {
-								_, err := mclient.Reblog(context.Background(), mastodon.ID(statusid))
-								if err == nil {
-									rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TootID: mastodon.ID(statusid), Action: actionReblog}}
-								}
+						go func() {
+							if err := parseReblogFavouriteArgs(reblog_cmd_, post, mxcli,
+								func(statusid string) error {
+									_, err := mclient.Reblog(context.Background(), mastodon.ID(statusid))
+									if err == nil {
+										rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TootID: mastodon.ID(statusid), Action: actionReblog}}
+									}
 
-								return err
-							},
-							func(postidstr string) error {
-								postid, err := strconv.ParseInt(postidstr, 10, 64)
-								if err != nil {
 									return err
-								}
-								if postid <= 0 {
-									return fmt.Errorf("Sorry could not parse status id")
-								}
-								_, err = tclient.Retweet(postid, true)
-								if err == nil {
-									rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TweetID: postid, Action: actionReblog}}
-								}
+								},
+								func(postidstr string) error {
+									postid, err := strconv.ParseInt(postidstr, 10, 64)
+									if err != nil {
+										return err
+									}
+									if postid <= 0 {
+										return fmt.Errorf("Sorry could not parse status id")
+									}
+									_, err = tclient.Retweet(postid, true)
+									if err == nil {
+										rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TweetID: postid, Action: actionReblog}}
+									}
 
-								return err
-							},
-						); err == nil {
-							mxNotify(mxcli, "reblog", "Ok, I reblogged/retweeted that status for you")
-						} else {
-							mxNotify(mxcli, "reblog", fmt.Sprintf("error reblogging/retweeting: %s", err.Error()))
-						}
-
+									return err
+								},
+							); err == nil {
+								mxNotify(mxcli, "reblog", "Ok, I reblogged/retweeted that status for you")
+							} else {
+								mxNotify(mxcli, "reblog", fmt.Sprintf("error reblogging/retweeting: %s", err.Error()))
+							}
+						}()
 					} else if strings.HasPrefix(post, favourite_cmd_) {
 						/// CMD Favourite
 
-						err := parseReblogFavouriteArgs(favourite_cmd_, post, mxcli,
-							func(statusid string) error {
-								_, err := mclient.Favourite(context.Background(), mastodon.ID(statusid))
-								if err == nil {
-									rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TootID: mastodon.ID(statusid), Action: actionFav}}
-								}
-								return err
-							},
-							func(postidstr string) error {
-								postid, err := strconv.ParseInt(postidstr, 10, 64)
-								if err != nil {
+						go func() {
+							err := parseReblogFavouriteArgs(favourite_cmd_, post, mxcli,
+								func(statusid string) error {
+									_, err := mclient.Favourite(context.Background(), mastodon.ID(statusid))
+									if err == nil {
+										rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TootID: mastodon.ID(statusid), Action: actionFav}}
+									}
 									return err
-								}
-								if postid <= 0 {
-									return fmt.Errorf("Sorry could not parse status id")
-								}
-								_, err = tclient.Favorite(postid)
-								if err == nil {
-									rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TweetID: postid, Action: actionFav}}
-								}
-								return err
-							},
-						)
-						if err == nil {
-							mxNotify(mxcli, "favourite", "Ok, I favourited that status for you")
+								},
+								func(postidstr string) error {
+									postid, err := strconv.ParseInt(postidstr, 10, 64)
+									if err != nil {
+										return err
+									}
+									if postid <= 0 {
+										return fmt.Errorf("Sorry could not parse status id")
+									}
+									_, err = tclient.Favorite(postid)
+									if err == nil {
+										rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{MatrixUser: ev.Sender, TweetID: postid, Action: actionFav}}
+									}
+									return err
+								},
+							)
+							if err == nil {
+								mxNotify(mxcli, "favourite", "Ok, I favourited that status for you")
 
-						} else {
-							mxNotify(mxcli, "favourite", fmt.Sprintf("error favouriting: %s", err.Error()))
-						}
-
+							} else {
+								mxNotify(mxcli, "favourite", fmt.Sprintf("error favouriting: %s", err.Error()))
+							}
+						}()
 					} else if strings.HasPrefix(post, guard_prefix_) {
 						/// CMD Posting
 
