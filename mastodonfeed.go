@@ -40,12 +40,12 @@ func (frc *FeedRoomConnector) runSplitMastodonEventStream(evChan <-chan mastodon
 			if statusOutChan != nil {
 				statusOutChan <- event.Status
 			}
-			log.Println("runSplitMastodonEventStream: new Status", event.Status)
+			// log.Println("runSplitMastodonEventStream: new Status", event.Status)
 		case *mastodon.NotificationEvent:
 			if notificationOutChan != nil {
 				notificationOutChan <- event.Notification
 			}
-			log.Println("runSplitMastodonEventStream: new Notification", event.Notification)
+			// log.Println("runSplitMastodonEventStream: new Notification", event.Notification)
 		case *mastodon.DeleteEvent:
 			continue
 		default:

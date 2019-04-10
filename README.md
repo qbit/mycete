@@ -37,6 +37,8 @@ To do this, create a separate configuration section for each room named `feed2ma
 
 In addition to the home stream, it is possible to subscribe tag streams using `[feed2matrix]subscribe_tagstreams` which will be mixed together with the homestream into one big stream which your configurations (s.a.) will then filter.
 
+If you don't need this, just leave `configurations` empty or remove all `feed2matrix` sections.
+
 ## Example Config
 
 ```
@@ -79,7 +81,7 @@ characterlimit = 1000
 configurations=filter1 filter2
 subscribe_tagstreams=interesstingtag otherinteresstingtag
 imagebyteslimit = 5242880
-imagecountlimit = 8
+imagecountlimit = 4
 
 [feed2matrix_filter1]
 target_room=!example1:matrix.org
@@ -132,3 +134,4 @@ Oauth via console pin. (TODO)
 - [X] more feedback and user error guards
 - [ ] use constrained memory, not slowly ever growing maps. Aka don't be a memory hog
 - [ ] twitter stream to matrix, favorite and retweet
+- [ ] look into support for small videos

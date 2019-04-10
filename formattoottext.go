@@ -61,10 +61,10 @@ func formatNotificationForMatrix(notification *mastodon.Notification) (body, htm
 		htmlbody = fmt.Sprintf("<u><strong>%s</strong> mentioned you in <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, url, url, content_html)
 	case "reblog":
 		body = fmt.Sprintf("%s reblogged your status [ %s ]", sender, url)
-		htmlbody = fmt.Sprintf("<strong>%s</strong> reblogged your status <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, url, url)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> reblogged your status <a href=\"%s\">%s</a>", sender, url, url)
 	case "favourite":
 		body = fmt.Sprintf("%s favourited your status [ %s ]", sender, url)
-		htmlbody = fmt.Sprintf("<strong>%s</strong> favourited your status <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, url, url)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> favourited your status <a href=\"%s\">%s</a>", sender, url, url)
 	case "follow":
 		body = fmt.Sprintf("%s is following you now", sender)
 		htmlbody = fmt.Sprintf("<strong>%s</strong> is following you now", sender)
