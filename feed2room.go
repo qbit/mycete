@@ -126,6 +126,12 @@ func taskFilterMastodonStreamForRoom(frc *FeedRoomConnector, configname string, 
 }
 
 func taskWriteMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.Client) (markseen_rv chan<- mastodon.ID) {
+	defer func() {
+		if x := recover(); x != nil {
+			log.Println(x)
+			panic(x)
+		}
+	}()
 	if mclient == nil || mxcli == nil {
 		return // do nothing
 	}
@@ -138,17 +144,16 @@ func taskWriteMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomat
 	}
 
 	//configuation for controlling room
-	show_mastodon_notifications := c.GetValueDefault("matrix", "show_mastodon_notifications", "true") == "true"
-	show_own_toots_from_foreign_clients := c.GetValueDefault("matrix", "show_own_toots_from_foreign_clients", "true") == "true"
-	show_complete_home_stream := c.GetValueDefault("matrix", "show_complete_home_stream", "false") == "true"
+	show_mastodon_notifications := c.GetValueDefault("feed2matrix", "show_mastodon_notifications", "true") == "true"
+	show_own_toots_from_foreign_clients := c.GetValueDefault("feed2matrix", "show_own_toots_from_foreign_clients", "true") == "true"
+	show_complete_home_stream := c.GetValueDefault("feed2matrix", "show_complete_home_stream", "false") == "true"
 
 	//configuration for additonal matrix rooms
-
-	configurations := strings.Split(c.GetValueDefault("feed2matrix", "configurations", ""), " ")
+	configurations := strings.Split(c.GetValueDefault("feed2morerooms", "configurations", ""), " ")
 	if len(configurations) == 1 && len(configurations[0]) == 0 {
 		configurations = nil
 	}
-	subscribe_tagstreams := strings.Split(c.GetValueDefault("feed2matrix", "subscribe_tagstreams", ""), " ")
+	subscribe_tagstreams := strings.Split(c.GetValueDefault("feed2morerooms", "subscribe_tagstreams", ""), " ")
 	if len(subscribe_tagstreams) == 1 && len(subscribe_tagstreams[0]) == 0 {
 		subscribe_tagstreams = nil
 	}
@@ -158,9 +163,9 @@ func taskWriteMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomat
 	var next_in_chain_ chan<- *mastodon.Status = nil
 	for _, configname := range configurations {
 		//join additional room
-		target_room, trvexists := c.GetValue("feed2matrix_"+configname, "target_room")
+		target_room, trvexists := c.GetValue("feed2morerooms_"+configname, "target_room")
 		if !trvexists {
-			panic("target_room in [feed2matrix_" + configname + "] is not set")
+			panic("target_room in [feed2morerooms_" + configname + "] is not set")
 		}
 		room_filter_c, inmap := room_duplicate_filter_targets[target_room]
 		if !inmap {
@@ -182,7 +187,7 @@ func taskWriteMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomat
 				}
 			}()
 		}
-		next_in_chain_ = taskFilterMastodonStreamForRoom(frc, "feed2matrix_"+configname, room_filter_c, next_in_chain_)
+		next_in_chain_ = taskFilterMastodonStreamForRoom(frc, "feed2morerooms_"+configname, room_filter_c, next_in_chain_)
 	}
 
 	no_duplicate_or_selfsent_status_c := make(chan *mastodon.Status, 42)

@@ -30,14 +30,16 @@ Tweets and Toots may be favoured or reblogged / retweeted by using the `reblog_c
 The controlling settings are `show_mastodon_notifications`, `show_own_toots_from_foreign_clients` and 
 `show_complete_home_stream` in `[matrix]`
 
+If you don't need this, just remove the `feed2matrix` section.
+
 Additionally it is possible to mirror your complete homestream or just part of it to other matrix rooms.
 For each room you may filter by tag, post visibility, sensitivity, weather it is an original toot or a reblog, weather our account posted it or someone else and weather or not we are following the author.
 
-To do this, create a separate configuration section for each room named `feed2matrix_xxxxx` where xxxxx is your name for that configuration. You can specify arbitrary many configurations, as only the ones listed in `[feed2matrix]configurations` are activated and used.
+To do this, create a separate configuration section for each room named `feed2morerooms_xxxxx` where xxxxx is your name for that configuration. You can specify arbitrary many configurations, as only the ones listed in `[feed2morerooms]configurations` are activated and used.
 
-In addition to the home stream, it is possible to subscribe tag streams using `[feed2matrix]subscribe_tagstreams` which will be mixed together with the homestream into one big stream which your configurations (s.a.) will then filter.
+In addition to the home stream, it is possible to subscribe tag streams using `[feed2morerooms]subscribe_tagstreams` which will be mixed together with the homestream into one big stream which your configurations (s.a.) will then filter.
 
-If you don't need this, just leave `configurations` empty or remove all `feed2matrix` sections.
+If you don't need this, just leave `configurations` empty or remove all `feed2morerooms` sections.
 
 ## Example Config
 
@@ -56,9 +58,6 @@ reblog_cmd=reblog>
 favourite_cmd=+1>
 join_welcome_text="Welcome! Warning: Everything you say I will toot and/or tweet to the world if it starts with t>"
 admins_can_redact_user_status=false
-show_mastodon_notifications=true
-show_own_toots_from_foreign_clients=true
-show_complete_home_stream=false
 
 [twitter]
 consumer_key=
@@ -77,13 +76,18 @@ enabled=true
 temp_dir=/tmp
 
 [feed2matrix]
+show_mastodon_notifications=true
+show_own_toots_from_foreign_clients=true
+show_complete_home_stream=false
 characterlimit = 1000
-configurations=filter1 filter2
-subscribe_tagstreams=interesstingtag otherinteresstingtag
-imagebyteslimit = 5242880
+imagebyteslimit = 4194304
 imagecountlimit = 4
 
-[feed2matrix_filter1]
+[feed2morerooms]
+subscribe_tagstreams=interesstingtag otherinteresstingtag
+configurations=filter1 filter2
+
+[feed2morerooms_filter1]
 target_room=!example1:matrix.org
 filter_visibility=public
 filter_for_tags=interesstingtag
@@ -93,7 +97,7 @@ filter_myposts=true
 filter_otherpeoplesposts=false
 filter_unfollowed=false
 
-[feed2matrix_filter2]
+[feed2morerooms_filter2]
 target_room=!example2:matrix.org
 filter_visibility=public
 filter_for_tags=otherinteresstingtag
