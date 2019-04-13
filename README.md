@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/qbit/mycete.svg?branch=master)](https://travis-ci.org/qbit/mycete)
 
-*STILL ALPHA*
+*BETA: Software is used frequently but Bugs may still appear and behaviour may change at any commit*
 
 Riot/Matrix room: [#mycete:tapenet.org](https://riot.im/app/#/room/#mycete:tapenet.org)
 
