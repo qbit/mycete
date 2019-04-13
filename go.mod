@@ -13,10 +13,8 @@ require (
 	github.com/mattn/go-mastodon v0.0.4-0.20190311051807-e804ee7eb264
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/tomnomnom/linkheader v0.0.0-20160328204959-6953a30d4443 // indirect
-	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c // indirect
 	golang.org/x/net v0.0.0-20190328230028-74de082e2cca // indirect
 	golang.org/x/sys v0.0.0-20190402142545-baf5eb976a8c
-	golang.org/x/tools v0.0.0-20190402200628-202502a5a924 // indirect
 )
 
-replace github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af => github.com/btittelbach/gomatrix v0.0.0-20190407020023-296a9a2eb860
+replace github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af => github.com/btittelbach/gomatrix v0.0.0-20190413201406-fd0cbd186e59

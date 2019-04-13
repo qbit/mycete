@@ -61,18 +61,27 @@ func (frc *FeedRoomConnector) writeStatusToRoom(status *mastodon.Status, mroom s
 					if len(bodytext) == 0 {
 						bodytext = status.URL
 					}
-					imginfo := gomatrix.ImageInfo{Height: uint(attachment.Meta.Original.Height), Width: uint(attachment.Meta.Original.Width), Mimetype: content_data.mimetype, Size: uint(content_data.contentlength)}
-					if len(thumbnail_content_data.mxcurl) > 0 && thumbnail_content_data.err == nil {
-						imginfo.ThumbnailURL = thumbnail_content_data.mxcurl
-						imginfo.ThumbnailInfo = gomatrix.ThumbnailInfo{Height: uint(attachment.Meta.Small.Height), Width: uint(attachment.Meta.Small.Width), Mimetype: thumbnail_content_data.mimetype, Size: uint(thumbnail_content_data.contentlength)}
+					imgmsg := gomatrix.ImageMessage{
+						MsgType: "m.image",
+						Body:    bodytext,
+						URL:     content_data.mxcurl,
+						Info: gomatrix.ImageInfo{
+							Height:   uint(attachment.Meta.Original.Height),
+							Width:    uint(attachment.Meta.Original.Width),
+							Mimetype: content_data.mimetype,
+							Size:     uint(content_data.contentlength),
+						},
 					}
-					frc.mxcli.SendMessageEvent(mroom, "m.room.message",
-						gomatrix.ImageMessage{
-							MsgType: "m.image",
-							Body:    bodytext,
-							URL:     content_data.mxcurl,
-							Info:    imginfo,
-						})
+					if len(thumbnail_content_data.mxcurl) > 0 && thumbnail_content_data.err == nil {
+						imgmsg.ThumbnailURL = thumbnail_content_data.mxcurl
+						imgmsg.ThumbnailInfo = gomatrix.ImageInfo{
+							Height:   uint(attachment.Meta.Small.Height),
+							Width:    uint(attachment.Meta.Small.Width),
+							Mimetype: thumbnail_content_data.mimetype,
+							Size:     uint(thumbnail_content_data.contentlength),
+						}
+					}
+					frc.mxcli.SendMessageEvent(mroom, "m.room.message", imgmsg)
 
 				} else {
 					log.Printf("writeStatusToRoom: Image not uploaded: attachment: %+v, imgurl: %s, Err: %s", attachment, imgurl, content_data.err)
