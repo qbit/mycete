@@ -139,3 +139,4 @@ Oauth via console pin. (TODO)
 - [ ] use constrained memory, not slowly ever growing maps. Aka don't be a memory hog
 - [ ] twitter stream to matrix, favorite and retweet
 - [ ] look into support for small videos
+- [ ] optionally redact matrix imagemessages after a while, thus not clobbering matrix-synapse storage
