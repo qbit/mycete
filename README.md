@@ -136,7 +136,7 @@ Oauth via console pin. (TODO)
 - [X] post images
 - [X] support uploading multiple images per Toot/Tweet
 - [X] more feedback and user error guards
-- [ ] use constrained memory, not slowly ever growing maps. Aka don't be a memory hog
+- [X] use constrained memory, not slowly ever growing maps. Aka don't be a memory hog
 - [ ] twitter stream to matrix, favorite and retweet
 - [ ] look into support for small videos
 - [ ] optionally redact matrix imagemessages after a while, thus not clobbering matrix-synapse storage

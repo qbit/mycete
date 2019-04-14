@@ -13,6 +13,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/btittelbach/cachetable"
 	"github.com/matrix-org/gomatrix"
 )
 
@@ -186,27 +187,24 @@ func matrixUploadLink(mxcli *gomatrix.Client, url string) (*gomatrix.RespMediaUp
 	return rmu, mimetype, clength, err
 }
 
-///TODO: use short fixed roundbuffer array instead of map. unlikely we will encounter the same imgurl twice in a long time.
-// type MxContentStore struct {
-// 	imgurl string
-// 	mxcurl string
-// }
-/// TODO: don't be a memory hog
 func taskUploadImageLinksToMatrix(mxcli *gomatrix.Client) chan<- MxContentUrlFuture {
 	futures_chan := make(chan MxContentUrlFuture, 42)
 	go func() {
-		mx_link_store := make(map[string]MxUploadedImageInfo, 50)
+		mx_link_store, err := cachetable.NewCacheTable(70, 9, false)
+		if err != nil {
+			panic(err)
+		}
 		for future := range futures_chan {
 			resp := MxUploadedImageInfo{}
-			if saveddata, inmap := mx_link_store[future.imgurl]; inmap {
-				resp = saveddata
+			if saveddata, inmap := mx_link_store.Get(future.imgurl); inmap {
+				resp = saveddata.Value.(MxUploadedImageInfo)
 			} else { // else upload it
 				if resp_media_up, mimetype, clength, err := matrixUploadLink(mxcli, future.imgurl); err == nil {
 					resp.mxcurl = resp_media_up.ContentURI
 					resp.contentlength = clength
 					resp.mimetype = mimetype
 					resp.err = err
-					mx_link_store[future.imgurl] = resp
+					mx_link_store.Set(future.imgurl, resp)
 				} else {
 					resp.err = err
 					log.Printf("uploadImageLinksToMatrix Error: url: %s, error: %s", future.imgurl, err.Error())

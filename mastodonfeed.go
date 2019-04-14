@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/ChimeraCoder/anaconda"
+	"github.com/btittelbach/cachetable"
 	"github.com/matrix-org/gomatrix"
 	mastodon "github.com/mattn/go-mastodon"
 )
@@ -161,16 +162,17 @@ func (frc *FeedRoomConnector) taskPickStatusFromChannel(config StatusFilterConfi
 	return statusIn
 }
 
-/// TODO: don't be a memory hog
-/// TODO: prune list after time (use bounded memory)
-///       idea: use 2 maps at a time, prune one every x time (more efficient on cleanup, just throw stuff away)
-///       idea2: give each entry a timestamp (faster on lookup, expensive on cleanup)
+/// Filters out duplicate status i.e. only forwards each status once
+/// uses a forgetful cachetable, so the number of remembered already seen status ids does not grow to infinity with infinite time
 func (frc *FeedRoomConnector) taskFilterDuplicateStatus(debugname string, statusPassedFilter chan<- *mastodon.Status, statusOut chan<- *mastodon.Status) (statusInRv chan<- *mastodon.Status, markStatusSeenRv chan<- mastodon.ID) {
 	statusIn := make(chan *mastodon.Status, 42)
 	markStatusSeen := make(chan mastodon.ID, 42)
 	go func() {
 		defer close(statusOut)
-		already_seen_map := make(map[mastodon.ID]bool, 20)
+		already_seen_map, err := cachetable.NewCacheTable(8, 3, true)
+		if err != nil {
+			panic(err)
+		}
 	FILTERFOR:
 		for {
 			select {
@@ -183,16 +185,16 @@ func (frc *FeedRoomConnector) taskFilterDuplicateStatus(debugname string, status
 					//passthrough
 					statusOut <- status
 				}
-				if _, inmap := already_seen_map[status.ID]; inmap {
+				if _, inmap := already_seen_map.Get(string(status.ID)); inmap {
 					//already boosted this status "today", probably used more than one of our hashtags
 					log.Println("taskFilterDuplicateStatus:", debugname, status.ID, "failed already seen check")
 					continue FILTERFOR
 				}
 
-				already_seen_map[status.ID] = true
+				already_seen_map.Set(string(status.ID), true)
 				statusPassedFilter <- status
 			case statusid := <-markStatusSeen:
-				already_seen_map[statusid] = true
+				already_seen_map.Set(string(statusid), true)
 			}
 		}
 	}()
