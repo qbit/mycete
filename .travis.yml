@@ -1,5 +1,12 @@
 language: go
-
 go:
-  - 1.9
-  - tip
+  - 1.12.x
+  - master
+os:
+  - linux
+  - osx
+sudo: false
+install: true
+script:
+  - env GO111MODULE=on go build
+  - env GO111MODULE=on go test
