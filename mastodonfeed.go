@@ -130,7 +130,7 @@ func (frc *FeedRoomConnector) taskPickStatusFromChannel(config StatusFilterConfi
 				if relationships, relerr := frc.mclient.GetAccountRelationships(context.Background(), []string{string(status.Account.ID)}); relerr == nil && len(relationships) > 0 {
 					passes_follow_check = relationships[0].Following && !relationships[0].Blocking
 				} else {
-					log.Printf("taskPickStatusFromChannel:", config.debugname, status.ID, ":FollowCheck: ", relerr)
+					log.Println("taskPickStatusFromChannel:", config.debugname, status.ID, ":FollowCheck: ", relerr)
 					passes_follow_check = false
 				}
 				if !passes_follow_check {
