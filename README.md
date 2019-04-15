@@ -48,13 +48,21 @@ access_token=
 enabled=true
 temp_dir=/tmp
 
+[feed2matrix]
+dst_room_ids=
+subscribe_only_public=false
+characterlimit = 89
+filter_tags=
+filter_sensitive=false
+
+
 ```
 
 ## TODO
 
 - [ ] create an interface for clients.
 - [X] TravisCI.
-- [ ] Read the timelines back into the matrix room.
+- [X] Read the timelines back into the matrix room.
 - [ ] Document the process for getting api keys.
 - [ ] Only establish our oauth / auth stuff when a service is enabled.
 - [ ] Post to RSS for blogging?

@@ -11,7 +11,10 @@ require (
 	github.com/gorilla/websocket v1.2.0 // indirect
 	github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af
 	github.com/mattn/go-mastodon v0.0.3
+	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/tomnomnom/linkheader v0.0.0-20160328204959-6953a30d4443 // indirect
 	golang.org/x/net v0.0.0-20190108225652-1e06a53dbb7e // indirect
 	golang.org/x/sys v0.0.0-20171121202757-82aafbf43bf8
 )
+
+//replace github.com/mattn/go-mastodon v0.0.3 => github.com/btittelbach/go-mastodon v0.0.3

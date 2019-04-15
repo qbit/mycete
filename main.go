@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -21,6 +22,136 @@ import (
 var c goconfig.ConfigMap
 var err error
 var temp_image_files_dir_ string
+
+//// Desired Result / TODO
+//// when acting as Account UserMe
+//// 1. post all Status of UserMe to AdditionalMatrixRooms, no matter which client was used to write them (filtered Home timeline)
+//// 2. post all Status of UserMe that DID NOT originate from controling matrix room to controlling matrix room
+//// 3. post all Notifiations (private or not) to controlling matrix room (mentions, follows, etc)
+//// 4. post all public mentions of UserMe to AdditionalMatrixRooms (filtered Home timeline)
+//// 5. optionally post all Status with certain tag to AdditionalMatrixRooms (filtered HashTag timeline)
+
+func writeMastodonBackIntoMatrixRooms(mclient *mastodon.Client, mxcli *gomatrix.Client) (markseen_rv chan<- mastodon.ID) {
+	if mclient == nil || mxcli == nil {
+		return // do nothing
+	}
+
+	//configuation for controlling room
+	show_mastodon_notifications := c.GetValueDefault("matrix", "show_mastodon_notifications", "true") == "true"
+	show_own_toots_from_foreign_clients := c.GetValueDefault("matrix", "show_own_toots_from_foreign_clients", "true") == "true"
+	show_complete_home_stream := c.GetValueDefault("matrix", "show_complete_home_stream", "false") == "true"
+
+	//configuration for additonal matrix rooms
+	filter_reblogs := c.GetValueDefault("feed2matrix", "filter_reblogs", "false") == "true"
+	filter_sensitive := c.GetValueDefault("feed2matrix", "filter_sensitive", "false") == "true"
+	additional_target_room_ids := strings.Split(c.GetValueDefault("feed2matrix", "target_room_ids", ""), " ")
+	filter_visibility := strings.Split(c.GetValueDefault("feed2matrix", "filter_visibility", ""), " ")
+	subscribe_tagstreams := strings.Split(c.GetValueDefault("feed2matrix", "subscribe_tagstreams", ""), " ")
+	filter_for_tags := strings.Split(c.GetValueDefault("feed2matrix", "filter_for_tags", ""), " ")
+
+	//then join additional rooms
+	for _, mroom := range additional_target_room_ids {
+		if mroom != c["matrix"]["room_id"] {
+			log.Println("writeMastodonBackIntoMatrixRooms: joining room", mroom)
+			if _, err := mxcli.JoinRoom(mroom, "", nil); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	no_duplicate_or_selfsent_status_c := make(chan *mastodon.Status, 42)
+	no_duplicate_status_c := make(chan *mastodon.Status, 42)
+	notification2myroom_c := make(chan *mastodon.Notification, 42)
+	// for _, tag := range strings.Split(c.GetValueDefault("feed2matrix", "filter_tags", ""), " ") {
+	// 	hashstream, err := mclient.StreamingHashtag(context.Background(), tag, true)
+	// }
+
+	frc := &FeedRoomConnector{
+		mclient: mclient,
+		tclient: nil,
+		mxcli:   mxcli,
+	}
+
+	//--> filter_duplicates_and_selfsent_c	--> filter_ownposts_duplicates_c
+	//										\-> no_duplicate_or_selfsent_status_c --> to controlling room
+	filter_duplicates_and_selfsent_c, markseen_c := frc.filterDuplicateStatus(no_duplicate_or_selfsent_status_c, nil)
+
+	//--> filter_ownposts_duplicates_c	-->	nil
+	//									\-> no_duplicate_status_c --> to additional rooms
+	filter_ownposts_duplicates_c, _ := frc.filterDuplicateStatus(no_duplicate_status_c, nil)
+
+	//--> filter_ownposts_c		--> filter_tag_c
+	//							\-> filter_ownposts_duplicates_c
+	filter_ownposts_no_private_c := frc.filterAndHandleStatus(StatusFilterConfig{
+		must_have_one_of_tag_names: nil,
+		must_be_original:           false,
+		must_be_unmuted:            true,
+		must_not_be_sensitive:      true,
+		check_visibility:           true,
+		must_have_visiblity:        []string{"public"},
+		must_be_written_by_us:      true,
+		must_not_be_written_by_us:  false,
+		must_be_followed_by_us:     false},
+		filter_ownposts_duplicates_c, nil)
+
+	//--> filter_ownposts_c		--> filter_tag_c
+	//							\-> filter_ownposts_duplicates_c
+	filter_ownposts_with_private_c := frc.filterAndHandleStatus(StatusFilterConfig{
+		must_have_one_of_tag_names: nil,
+		must_be_original:           false,
+		must_be_unmuted:            true,
+		must_not_be_sensitive:      false,
+		check_visibility:           false,
+		must_be_written_by_us:      true,
+		must_not_be_written_by_us:  false,
+		must_be_followed_by_us:     false},
+		filter_duplicates_and_selfsent_c, filter_ownposts_no_private_c)
+
+	//	{cloud}					--> userstream
+	userstream, err := mclient.StreamingUser(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	//--> userstream		--> filter_ownposts_c
+	//						\-> notification2myroom_c
+	go frc.goSplitMastodonEventStream(userstream, filter_ownposts_with_private_c, notification2myroom_c)
+
+	/*
+		//	{cloud}					--> tagstream
+		tagstream, err := mclient.StreamingHashtag(context.Background(), "realraum", true)
+		if err != nil {
+			panic(err)
+		}
+		//--> tagstream			--> filter_tag_c
+		//						\-> nil
+			go frc.goSplitMastodonEventStream(tagstream, filter_tag_c, nil)
+	*/
+
+	//start writing mastodon feed messages to room
+	if len(additional_target_room_ids) > 0 {
+		go func() {
+			log.Println("writeMastodonFeedIntoAdditionalMatrixRooms: starting")
+			for status := range no_duplicate_status_c {
+				for _, mroom := range additional_target_room_ids {
+					log.Println("writeMastodonFeedIntoAdditionalMatrixRooms: sending notice to %s", mroom)
+					mxcli.SendNotice(mroom, formatStatusForMatrix(status))
+				}
+			}
+		}()
+	}
+	go func() {
+		log.Println("writePublishedFeedsIntoControllingRoom: starting")
+		for {
+			select {
+			case notification := <-notification2myroom_c:
+				mxNotify(mxcli, "writePublishedFeedsIntoControllingRoom Notifcation", formatNotificationForMatrix(notification))
+			case foreignsentstatus := <-no_duplicate_or_selfsent_status_c:
+				mxNotify(mxcli, "writePublishedFeedsIntoControllingRoom Foreign Status", formatStatusForMatrix(foreignsentstatus))
+			}
+		}
+	}()
+	return markseen_c
+}
 
 func mxNotify(client *gomatrix.Client, from, msg string) {
 	log.Printf("%s: %s\n", from, msg)
@@ -57,6 +188,11 @@ func mxRunBot() {
 		panic(err)
 	}
 
+	var markseen_c chan<- mastodon.ID = nil
+	if c.SectionInConfig("feed2matrix") {
+		markseen_c = writeMastodonBackIntoMatrixRooms(mclient, mxcli)
+	}
+
 	syncer := mxcli.Syncer.(*gomatrix.DefaultSyncer)
 	syncer.OnEventType("m.room.message", func(ev *gomatrix.Event) {
 		if mxIgnoreEvent(ev) { //ignore messages from ourselves or from other rooms in case of dual-login
@@ -89,6 +225,9 @@ func mxRunBot() {
 
 							if c["server"]["mastodon"] == "true" {
 								reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender)
+								if markseen_c != nil {
+									markseen_c <- mastodonid
+								}
 								if err != nil {
 									log.Println("MastodonTootERROR:", err)
 									mxNotify(mxcli, "mastodon", "ERROR while tooting!")
@@ -256,6 +395,12 @@ func main() {
 			panic(err)
 		}
 		defer os.RemoveAll(temp_image_files_dir_)
+	}
+
+	if c_charlimitstr, c_charlimitstr_set := c.GetValue("feed2matrix", "characterlimit"); c_charlimitstr_set && len(c_charlimitstr) > 0 {
+		if charlimit, err := strconv.Atoi(c_charlimitstr); err == nil {
+			matrix_notice_character_limit_ = charlimit
+		}
 	}
 
 	go mxRunBot()
