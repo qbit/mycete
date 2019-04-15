@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 	"strings"
 )
 
@@ -27,7 +26,7 @@ type NotificationEvent struct {
 func (e *NotificationEvent) event() {}
 
 // DeleteEvent is struct for passing deletion event to app.
-type DeleteEvent struct{ ID int64 }
+type DeleteEvent struct{ ID ID }
 
 func (e *DeleteEvent) event() {}
 
@@ -70,11 +69,7 @@ func handleReader(q chan Event, r io.Reader) error {
 					q <- &NotificationEvent{&notification}
 				}
 			case "delete":
-				var id int64
-				id, err = strconv.ParseInt(strings.TrimSpace(token[1]), 10, 64)
-				if err == nil {
-					q <- &DeleteEvent{id}
-				}
+				q <- &DeleteEvent{ID: ID(strings.TrimSpace(token[1]))}
 			}
 			if err != nil {
 				q <- &ErrorEvent{err}
