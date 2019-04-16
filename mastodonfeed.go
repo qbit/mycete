@@ -35,7 +35,7 @@ func (frc *FeedRoomConnector) runSplitMastodonEventStream(evChan <-chan mastodon
 	for eventi := range evChan {
 		switch event := eventi.(type) {
 		case *mastodon.ErrorEvent:
-			log.Println("runSplitMastodonEventStream:", "Error event: %s", event.Error())
+			log.Println("runSplitMastodonEventStream:", "Error event:", event.Error())
 			continue
 		case *mastodon.UpdateEvent:
 			if statusOutChan != nil {
@@ -50,7 +50,7 @@ func (frc *FeedRoomConnector) runSplitMastodonEventStream(evChan <-chan mastodon
 		case *mastodon.DeleteEvent:
 			continue
 		default:
-			log.Println("runSplitMastodonEventStream:", "Unhandled event: %+v", eventi)
+			log.Println("runSplitMastodonEventStream:", "Unhandled event:", eventi)
 		}
 	}
 }
