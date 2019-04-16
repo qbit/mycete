@@ -36,7 +36,12 @@ func (frc *FeedRoomConnector) runSplitMastodonEventStream(evChan <-chan mastodon
 		switch event := eventi.(type) {
 		case *mastodon.ErrorEvent:
 			log.Println("runSplitMastodonEventStream:", "Error event:", event.Error())
-			continue
+			//in case of error like a network error
+			//we really probably don't want fancy error handling only to fail at a later stage
+			//when network outage continues...
+			//thus we panic and exit early, leaving it to the service handler to restart us later
+			//for now
+			panic(event.Error())
 		case *mastodon.UpdateEvent:
 			if statusOutChan != nil {
 				statusOutChan <- event.Status
