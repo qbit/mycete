@@ -4,8 +4,8 @@ github.com/ChimeraCoder/tokenbucket v0.0.0-20131201223612-c5a927568de7 h1:r+EmXj
 github.com/ChimeraCoder/tokenbucket v0.0.0-20131201223612-c5a927568de7/go.mod h1:b2EuEMLSG9q3bZ95ql1+8oVqzzrTNSiOQqSXWFBzxeI=
 github.com/azr/backoff v0.0.0-20160115115103-53511d3c7330 h1:ekDALXAVvY/Ub1UtNta3inKQwZ/jMB/zpOtD8rAYh78=
 github.com/azr/backoff v0.0.0-20160115115103-53511d3c7330/go.mod h1:nH+k0SvAt3HeiYyOlJpLLv1HG1p7KWP7qU9QPp2/pCo=
-github.com/btittelbach/cachetable v0.8.0 h1:hgyC0kctnwpuxEWmAbwLmiAuKhnWyaYoHyOHhVosv5g=
-github.com/btittelbach/cachetable v0.8.0/go.mod h1:kJknYiV2CNr7PoeQMaZXzz3uu0wlWdldT1Soc3iJy5A=
+github.com/btittelbach/cachetable v0.9.1 h1:19DvD1DM2swZldOkeXxbkqTZyBDyah/3SZ2/7Ys9+HQ=
+github.com/btittelbach/cachetable v0.9.1/go.mod h1:gCd8/Aw1VXag3b9e34phL/v06rV1U79tqZoVRZQsC9U=
 github.com/btittelbach/gomatrix v0.0.0-20190413204209-f801209a7f2d h1:AFAPUCaqjI0ELH5EUUO7hnqZzCG1YKIrvr+vzrzRHIw=
 github.com/btittelbach/gomatrix v0.0.0-20190413204209-f801209a7f2d/go.mod h1:0VRF8Um+5nTL1wpOfDZeiwRz6s/ieTi/rqsbfx4L0p0=
 github.com/dustin/go-jsonpointer v0.0.0-20160814072949-ba0abeacc3dc h1:tP7tkU+vIsEOKiK+l/NSLN4uUtkyuxc6hgYpQeCWAeI=
