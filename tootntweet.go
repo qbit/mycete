@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"strconv"
+	"strings"
 
 	"github.com/ChimeraCoder/anaconda"
 	mastodon "github.com/mattn/go-mastodon"
@@ -46,15 +46,14 @@ func initTwitterClient() *anaconda.TwitterApi {
 		c["twitter"]["access_secret"],
 		c["twitter"]["consumer_key"],
 		c["twitter"]["consumer_secret"])
-
 }
 
 func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) (weburl string, statusid int64, err error) {
 	v := url.Values{}
 	v.Set("status", post)
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
-		if mediaid, _ := getImageForTweet(client, matrixnick); mediaid != 0 {
-			v.Set("media_ids", strconv.FormatInt(mediaid, 10))
+		if media_ids, _ := getImagesForTweet(client, matrixnick); media_ids != nil {
+			v.Set("media_ids", strings.Join(media_ids, ","))
 		}
 	}
 	// log.Println("sendTweet", post, v)
@@ -67,18 +66,28 @@ func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) (weburl str
 	return
 }
 
-func getImageForTweet(client *anaconda.TwitterApi, nick string) (int64, error) {
-	b64data, err := readFileIntoBase64(hashNickToPath(nick))
+func getImagesForTweet(client *anaconda.TwitterApi, nick string) ([]string, error) {
+	imagepaths, err := getUserFileList(nick)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
+	if len(imagepaths) == 0 {
+		return nil, fmt.Errorf("No stored image for nick")
+	}
+	media_ids := make([]string, len(imagepaths))
+	for idx, imagepath := range imagepaths {
+		if b64data, err := readFileIntoBase64(imagepath); err != nil {
+			return nil, err
+		} else {
+			if tmedia, err := client.UploadMedia(b64data); err != nil {
+				return nil, err
+			} else {
+				media_ids[idx] = strconv.FormatInt(tmedia.MediaID, 10)
+			}
+		}
 
-	tmedia, err := client.UploadMedia(b64data)
-	if err == nil {
-		return tmedia.MediaID, err
-	} else {
-		return 0, err
 	}
+	return media_ids, nil
 }
 
 /////////////
@@ -95,11 +104,11 @@ func initMastodonClient() *mastodon.Client {
 }
 
 func sendToot(client *mastodon.Client, post, matrixnick string) (weburl string, statusid mastodon.ID, err error) {
-	var mid mastodon.ID
+	var mids []mastodon.ID
 	usertoot := &mastodon.Toot{Status: post}
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
-		if mid, err = getImageForToot(client, matrixnick); err == nil {
-			usertoot.MediaIDs = []mastodon.ID{mid}
+		if mids, err = getImagesForToot(client, matrixnick); err == nil && mids != nil {
+			usertoot.MediaIDs = mids
 		}
 	}
 	// log.Println("sendToot", usertoot)
@@ -112,13 +121,21 @@ func sendToot(client *mastodon.Client, post, matrixnick string) (weburl string, 
 	return
 }
 
-func getImageForToot(client *mastodon.Client, matrixnick string) (mastodon.ID, error) {
-	imagepath := hashNickToPath(matrixnick)
-	if _, err := os.Stat(imagepath); !os.IsNotExist(err) {
-		attachment, err := client.UploadMedia(context.Background(), imagepath)
-		return attachment.ID, err
-	} else if err != nil {
-		return mastodon.ID(0), err
+func getImagesForToot(client *mastodon.Client, matrixnick string) ([]mastodon.ID, error) {
+	imagepaths, err := getUserFileList(matrixnick)
+	if err != nil {
+		return nil, err
 	}
-	return mastodon.ID(0), fmt.Errorf("No stored image for nick")
+	if len(imagepaths) == 0 {
+		return nil, fmt.Errorf("No stored image for nick")
+	}
+	mastodon_ids := make([]mastodon.ID, len(imagepaths))
+	for idx, imagepath := range imagepaths {
+		if attachment, err := client.UploadMedia(context.Background(), imagepath); err != nil {
+			return nil, err
+		} else {
+			mastodon_ids[idx] = attachment.ID
+		}
+	}
+	return mastodon_ids, nil
 }

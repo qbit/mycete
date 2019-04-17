@@ -6,30 +6,37 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"io"
 )
 
 // Status is struct to hold status.
 type Status struct {
 	ID                 ID           `json:"id"`
-	CreatedAt          time.Time    `json:"created_at"`
+	URI                string       `json:"uri"`
+	URL                string       `json:"url"`
+	Account            Account      `json:"account"`
 	InReplyToID        interface{}  `json:"in_reply_to_id"`
 	InReplyToAccountID interface{}  `json:"in_reply_to_account_id"`
+	Reblog             *Status      `json:"reblog"`
+	Content            string       `json:"content"`
+	CreatedAt          time.Time    `json:"created_at"`
+	Emojis             []Emoji      `json:"emojis"`
+	RepliesCount       int64        `json:"replies_count"`
+	ReblogsCount       int64        `json:"reblogs_count"`
+	FavouritesCount    int64        `json:"favourites_count"`
+	Reblogged          interface{}  `json:"reblogged"`
+	Favourited         interface{}  `json:"favourited"`
+	Muted              interface{}  `json:"muted"`
 	Sensitive          bool         `json:"sensitive"`
 	SpoilerText        string       `json:"spoiler_text"`
 	Visibility         string       `json:"visibility"`
-	Application        Application  `json:"application"`
-	Account            Account      `json:"account"`
 	MediaAttachments   []Attachment `json:"media_attachments"`
 	Mentions           []Mention    `json:"mentions"`
 	Tags               []Tag        `json:"tags"`
-	URI                string       `json:"uri"`
-	Content            string       `json:"content"`
-	URL                string       `json:"url"`
-	ReblogsCount       int64        `json:"reblogs_count"`
-	FavouritesCount    int64        `json:"favourites_count"`
-	Reblog             *Status      `json:"reblog"`
-	Favourited         interface{}  `json:"favourited"`
-	Reblogged          interface{}  `json:"reblogged"`
+	Card               *Card        `json:"card"`
+	Application        Application  `json:"application"`
+	Language           string       `json:"language"`
+	Pinned             interface{}  `json:"pinned"`
 }
 
 // Context hold information for mastodon context.
@@ -40,10 +47,18 @@ type Context struct {
 
 // Card hold information for mastodon card.
 type Card struct {
-	URL         string `json:"url"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Image       string `json:"image"`
+	URL          string `json:"url"`
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	Image        string `json:"image"`
+	Type         string `json:"type"`
+	AuthorName   string `json:"author_name"`
+	AuthorURL    string `json:"author_url"`
+	ProviderName string `json:"provider_name"`
+	ProviderURL  string `json:"provider_url"`
+	HTML         string `json:"html"`
+	Width        int64  `json:"width"`
+	Height       int64  `json:"height"`
 }
 
 // GetFavourites return the favorite list of the current user.
@@ -57,9 +72,9 @@ func (c *Client) GetFavourites(ctx context.Context, pg *Pagination) ([]*Status, 
 }
 
 // GetStatus return status specified by id.
-func (c *Client) GetStatus(ctx context.Context, id int64) (*Status, error) {
+func (c *Client) GetStatus(ctx context.Context, id ID) (*Status, error) {
 	var status Status
-	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%d", id), nil, &status, nil)
+	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%s", id), nil, &status, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -67,9 +82,9 @@ func (c *Client) GetStatus(ctx context.Context, id int64) (*Status, error) {
 }
 
 // GetStatusContext return status specified by id.
-func (c *Client) GetStatusContext(ctx context.Context, id int64) (*Context, error) {
+func (c *Client) GetStatusContext(ctx context.Context, id ID) (*Context, error) {
 	var context Context
-	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%d/context", id), nil, &context, nil)
+	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%s/context", id), nil, &context, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -77,9 +92,9 @@ func (c *Client) GetStatusContext(ctx context.Context, id int64) (*Context, erro
 }
 
 // GetStatusCard return status specified by id.
-func (c *Client) GetStatusCard(ctx context.Context, id int64) (*Card, error) {
+func (c *Client) GetStatusCard(ctx context.Context, id ID) (*Card, error) {
 	var card Card
-	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%d/card", id), nil, &card, nil)
+	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%s/card", id), nil, &card, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -87,9 +102,9 @@ func (c *Client) GetStatusCard(ctx context.Context, id int64) (*Card, error) {
 }
 
 // GetRebloggedBy returns the account list of the user who reblogged the toot of id.
-func (c *Client) GetRebloggedBy(ctx context.Context, id int64, pg *Pagination) ([]*Account, error) {
+func (c *Client) GetRebloggedBy(ctx context.Context, id ID, pg *Pagination) ([]*Account, error) {
 	var accounts []*Account
-	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%d/reblogged_by", id), nil, &accounts, pg)
+	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%s/reblogged_by", id), nil, &accounts, pg)
 	if err != nil {
 		return nil, err
 	}
@@ -97,9 +112,9 @@ func (c *Client) GetRebloggedBy(ctx context.Context, id int64, pg *Pagination) (
 }
 
 // GetFavouritedBy returns the account list of the user who liked the toot of id.
-func (c *Client) GetFavouritedBy(ctx context.Context, id int64, pg *Pagination) ([]*Account, error) {
+func (c *Client) GetFavouritedBy(ctx context.Context, id ID, pg *Pagination) ([]*Account, error) {
 	var accounts []*Account
-	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%d/favourited_by", id), nil, &accounts, pg)
+	err := c.doAPI(ctx, http.MethodGet, fmt.Sprintf("/api/v1/statuses/%s/favourited_by", id), nil, &accounts, pg)
 	if err != nil {
 		return nil, err
 	}
@@ -107,9 +122,9 @@ func (c *Client) GetFavouritedBy(ctx context.Context, id int64, pg *Pagination) 
 }
 
 // Reblog is reblog the toot of id and return status of reblog.
-func (c *Client) Reblog(ctx context.Context, id int64) (*Status, error) {
+func (c *Client) Reblog(ctx context.Context, id ID) (*Status, error) {
 	var status Status
-	err := c.doAPI(ctx, http.MethodPost, fmt.Sprintf("/api/v1/statuses/%d/reblog", id), nil, &status, nil)
+	err := c.doAPI(ctx, http.MethodPost, fmt.Sprintf("/api/v1/statuses/%s/reblog", id), nil, &status, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +132,9 @@ func (c *Client) Reblog(ctx context.Context, id int64) (*Status, error) {
 }
 
 // Unreblog is unreblog the toot of id and return status of the original toot.
-func (c *Client) Unreblog(ctx context.Context, id int64) (*Status, error) {
+func (c *Client) Unreblog(ctx context.Context, id ID) (*Status, error) {
 	var status Status
-	err := c.doAPI(ctx, http.MethodPost, fmt.Sprintf("/api/v1/statuses/%d/unreblog", id), nil, &status, nil)
+	err := c.doAPI(ctx, http.MethodPost, fmt.Sprintf("/api/v1/statuses/%s/unreblog", id), nil, &status, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -127,9 +142,9 @@ func (c *Client) Unreblog(ctx context.Context, id int64) (*Status, error) {
 }
 
 // Favourite is favourite the toot of id and return status of the favourite toot.
-func (c *Client) Favourite(ctx context.Context, id int64) (*Status, error) {
+func (c *Client) Favourite(ctx context.Context, id ID) (*Status, error) {
 	var status Status
-	err := c.doAPI(ctx, http.MethodPost, fmt.Sprintf("/api/v1/statuses/%d/favourite", id), nil, &status, nil)
+	err := c.doAPI(ctx, http.MethodPost, fmt.Sprintf("/api/v1/statuses/%s/favourite", id), nil, &status, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -137,9 +152,9 @@ func (c *Client) Favourite(ctx context.Context, id int64) (*Status, error) {
 }
 
 // Unfavourite is unfavourite the toot of id and return status of the unfavourite toot.
-func (c *Client) Unfavourite(ctx context.Context, id int64) (*Status, error) {
+func (c *Client) Unfavourite(ctx context.Context, id ID) (*Status, error) {
 	var status Status
-	err := c.doAPI(ctx, http.MethodPost, fmt.Sprintf("/api/v1/statuses/%d/unfavourite", id), nil, &status, nil)
+	err := c.doAPI(ctx, http.MethodPost, fmt.Sprintf("/api/v1/statuses/%s/unfavourite", id), nil, &status, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +234,7 @@ func (c *Client) PostStatus(ctx context.Context, toot *Toot) (*Status, error) {
 		params.Set("visibility", fmt.Sprint(toot.Visibility))
 	}
 	if toot.Sensitive {
-		params.Set("senstitive", "true")
+		params.Set("sensitive", "true")
 	}
 	if toot.SpoilerText != "" {
 		params.Set("spoiler_text", toot.SpoilerText)
@@ -234,8 +249,8 @@ func (c *Client) PostStatus(ctx context.Context, toot *Toot) (*Status, error) {
 }
 
 // DeleteStatus delete the toot.
-func (c *Client) DeleteStatus(ctx context.Context, id int64) error {
-	return c.doAPI(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/statuses/%d", id), nil, nil, nil)
+func (c *Client) DeleteStatus(ctx context.Context, id ID) error {
+	return c.doAPI(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/statuses/%s", id), nil, nil, nil)
 }
 
 // Search search content with query.
@@ -251,10 +266,20 @@ func (c *Client) Search(ctx context.Context, q string, resolve bool) (*Results, 
 	return &results, nil
 }
 
-// UploadMedia upload a media attachment.
+// UploadMedia upload a media attachment from a file.
 func (c *Client) UploadMedia(ctx context.Context, file string) (*Attachment, error) {
 	var attachment Attachment
 	err := c.doAPI(ctx, http.MethodPost, "/api/v1/media", file, &attachment, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &attachment, nil
+}
+
+// UploadMediaFromReader uploads a media attachment from a io.Reader.
+func (c *Client) UploadMediaFromReader(ctx context.Context, reader io.Reader) (*Attachment, error) {
+	var attachment Attachment
+	err := c.doAPI(ctx, http.MethodPost, "/api/v1/media", reader, &attachment, nil)
 	if err != nil {
 		return nil, err
 	}
