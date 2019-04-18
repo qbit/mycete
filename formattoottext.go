@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html"
+	"regexp"
 	"strings"
 
 	mastodon "github.com/mattn/go-mastodon"
@@ -26,9 +27,10 @@ func sanitizeFormatStatusForMatrix(status *mastodon.Status) (url, body, htmlbody
 	tagstripper.AllowElements("br")
 	tagstripper_html := bluemonday.NewPolicy()
 	tagstripper_html.AllowElements("br", "strike", "em", "i", "b", "strong", "code", "tt", "p")
+	re_br2newline := regexp.MustCompile("<br[^/>]*/?>")
 
 	htmlbody = tagstripper_html.Sanitize(status.Content)
-	body = html.UnescapeString(strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(tagstripper.Sanitize(status.Content), "<br>", "\n"), "<br/>", "\n")))
+	body = html.UnescapeString(strings.TrimSpace(re_br2newline.ReplaceAllString(tagstripper.Sanitize(status.Content), "\n")))
 	url = status.URL
 
 	if len(body) > matrix_notice_character_limit_ {
