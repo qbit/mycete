@@ -70,6 +70,15 @@ func formatNotificationForMatrix(notification *mastodon.Notification) (body, htm
 	case "follow":
 		body = fmt.Sprintf("%s is following you now", sender)
 		htmlbody = fmt.Sprintf("<strong>%s</strong> is following you now", sender)
+	case "follow_request":
+		body = fmt.Sprintf("%s would like to follow you!", sender)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> would like to follow you!", sender)
+	case "poll":
+		body = fmt.Sprintf("the result of %s's poll is in: %s", sender, url)
+		htmlbody = fmt.Sprintf("the result of <strong>%s</strong>'s poll is in: <a href=\"%s\">%s</a>", sender, url, url)
+	default:
+		body = fmt.Sprintf("received unsupported notification of type %s from %s", notification.Type, sender)
+		htmlbody = fmt.Sprintf("received unsupported notification of type %s from %s", notification.Type, sender)
 	}
 	return
 }
