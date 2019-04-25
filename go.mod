@@ -10,12 +10,10 @@ require (
 	github.com/garyburd/go-oauth v0.0.0-20180319155456-bca2e7f09a17 // indirect
 	github.com/gokyle/goconfig v0.0.0-20150908043511-373746557f7f
 	github.com/gorilla/websocket v1.2.0 // indirect
-	github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af
+	github.com/matrix-org/gomatrix v0.0.0-20190418155519-0c31efc5dc73
 	github.com/mattn/go-mastodon v0.0.4-0.20190311051807-e804ee7eb264
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/tomnomnom/linkheader v0.0.0-20160328204959-6953a30d4443 // indirect
 	golang.org/x/net v0.0.0-20190328230028-74de082e2cca // indirect
 	golang.org/x/sys v0.0.0-20190402142545-baf5eb976a8c
 )
-
-replace github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af => github.com/btittelbach/gomatrix v0.0.0-20190413204209-f801209a7f2d
