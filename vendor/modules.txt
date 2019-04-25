@@ -4,7 +4,7 @@ github.com/ChimeraCoder/anaconda
 github.com/ChimeraCoder/tokenbucket
 # github.com/azr/backoff v0.0.0-20160115115103-53511d3c7330
 github.com/azr/backoff
-# github.com/btittelbach/cachetable v0.8.0
+# github.com/btittelbach/cachetable v0.9.1
 github.com/btittelbach/cachetable
 # github.com/dustin/go-jsonpointer v0.0.0-20160814072949-ba0abeacc3dc
 github.com/dustin/go-jsonpointer
@@ -16,7 +16,7 @@ github.com/garyburd/go-oauth/oauth
 github.com/gokyle/goconfig
 # github.com/gorilla/websocket v1.2.0
 github.com/gorilla/websocket
-# github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af => github.com/btittelbach/gomatrix v0.0.0-20190413204209-f801209a7f2d
+# github.com/matrix-org/gomatrix v0.0.0-20190418155519-0c31efc5dc73
 github.com/matrix-org/gomatrix
 # github.com/mattn/go-mastodon v0.0.4-0.20190311051807-e804ee7eb264
 github.com/mattn/go-mastodon

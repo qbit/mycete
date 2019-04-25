@@ -1,18 +1,23 @@
 package cachetable
 
-import "errors"
+import (
+	"errors"
+	"math/bits"
+)
+
+const MaxUint uint = 1<<bits.UintSize - 1
 
 // Node which is stored at each level
 type Node struct {
 	key         string
 	Value       interface{}
-	create_time uint64
+	create_time uint
 }
 
 // CacheTable implemented with a fixed bucketcapacity.
 // removes oldest element in bucket once bucket reaches bucketcapacity
 type CacheTable struct {
-	current_time   uint64
+	current_time   uint
 	bucketcapacity int
 	numbuckets     int
 	count          int
@@ -95,42 +100,45 @@ func (h *CacheTable) Get(key string) (*Node, bool) {
 	return nil, false
 }
 
+func findElementOrOldestIndex(chain []Node, begin_of_time uint, key string) (oldest_node_seen_index int, elem_found bool) {
+	oldest_node_seen_time := MaxUint
+	oldest_node_seen_index = 0
+	elem_found = false
+	for i, node := range chain {
+		// if found, update the value
+		if node.key == key {
+			return i, true
+		}
+		//since we have not assigned current_time to a new node yet,
+		//h.current_time is currently also the beginning-of-time after
+		//a possible roll-over of uint
+		node_corrected_create_time := node.create_time - begin_of_time
+		// '<='' because at first we just assume 0 is the oldest and we might actually encounter a node with create_time=MaxUInt
+		// and since each create_time should be unique, we set oldest_node_seen_index to that node then
+		if node_corrected_create_time <= oldest_node_seen_time {
+			oldest_node_seen_index = i
+			oldest_node_seen_time = node_corrected_create_time
+		}
+	}
+	return
+}
+
 // Set the value for an associated key in the cachetable
 // this always success as it will just overwrite the oldest element in the bucket
 func (h *CacheTable) Set(key string, value interface{}) {
 	index := h.getIndex(key)
 	chain := h.buckets[index]
 
-	// first see if the key already exists
-	// also find oldest element in case it does not
-	oldest_time := uint64(1<<64 - 1)
-	oldest_index := 0
-	for i := range chain {
-		// if found, update the value
-		node := &chain[i]
-		if node.key == key {
-			node.Value = value
-			return
-		}
-		if node.create_time < oldest_time {
-			oldest_index = i
-			oldest_time = node.create_time
-		}
-	}
+	index_for_new_data, elem_found := findElementOrOldestIndex(chain, h.current_time, key)
 
 	// if key doesn't exist, add it to the cachetable
 	newnode := Node{key: key, Value: value, create_time: h.current_time}
 	h.current_time++ //increment cachetable insert time
 
-	//before the roll-over, compress time
-	if h.current_time == 1<<64-1 {
-		h.CompressTime()
-		newnode.create_time = h.current_time
-	}
-
-	// it bucket is full, overwrite oldest element
-	if len(chain) >= h.bucketcapacity {
-		chain[oldest_index] = newnode
+	// if key was found, overwrite it
+	// if bucket is full overwrite oldest element
+	if elem_found || len(chain) >= h.bucketcapacity {
+		chain[index_for_new_data] = newnode
 	} else {
 		// there's enough space, let's append the node
 		chain = append(chain, newnode)
@@ -175,12 +183,4 @@ func (h *CacheTable) Delete(key string) (*Node, bool) {
 // Load returns the load factor of the cachetable
 func (h *CacheTable) Load() float32 {
 	return float32(h.count) / float32(h.Capacity())
-}
-
-func (h *CacheTable) CompressTime() {
-	//TODO
-	//put pointers to all nodes into a big list of size h.size
-	//sort list by create-time
-	//give each node a new incremental number
-	//set h.current_time to next free number
 }

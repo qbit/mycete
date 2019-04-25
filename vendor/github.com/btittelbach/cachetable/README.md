@@ -1,6 +1,6 @@
 ### CacheTable
 
-A quick and naive golang implementation of a CacheTable as described in Fabian "ryg" Giesen's (blog)[https://fgiesen.wordpress.com/2019/02/11/cache-tables/]:
+A quick and naive golang implementation of a CacheTable as described in [Fabian "ryg" Giesen's blog](https://fgiesen.wordpress.com/2019/02/11/cache-tables/)
 
 Based on the naive hashmap code of Prakhar Srivastav.
 
@@ -56,7 +56,3 @@ func main() {
     }
 }
 ```
-
-## Todo
-
-[ ] After 2^64-1 inserts, the internal 'time'-counter will overflow. Before this happens, we need to compress the create_time numbering. This function is not yet implemented.
