@@ -22,6 +22,12 @@ If you upload images to the controlling matrix room, they will be appended to yo
 
 Tweets and Toots may be favoured or reblogged / retweeted by using the `reblog_cmd` or `favourite_cmd` (specified in the `[matrix]` section) followed by the status URL or ID
 
+## Example Information Flow
+
+<img src="https://raw.githubusercontent.com/btittelbach/lightningtalks_mycete-mastodonboostbot-matrix/master/images/mycete_statusflow.png" align="center" style="width:100%;">
+
+see also slides of lightningtalks which can be found [here](https://github.com/btittelbach/lightningtalks_mycete-mastodonboostbot-matrix)
+
 
 ## from Mastodon back to Matrix
 
