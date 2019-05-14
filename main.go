@@ -22,6 +22,8 @@ var (
 	feed2matrx_image_count_limit_  int
 	matrix_notice_character_limit_ int = 1000
 	guard_prefix_                  string
+	directtoot_prefix_             string
+	directtweet_prefix_            string
 	reblog_cmd_                    string
 	favourite_cmd_                 string
 )
@@ -88,11 +90,32 @@ func main() {
 	}
 
 	guard_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "guard_prefix", "t>"))
+	directtoot_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "directtoot_prefix", "dtoot>"))
+	directtweet_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "directtweet_prefix", "dtweet>"))
 	reblog_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "reblog_cmd", "reblog>"))
 	favourite_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "favourite_cmd", "+1>"))
-	if guard_prefix_ == reblog_cmd_ || reblog_cmd_ == favourite_cmd_ || favourite_cmd_ == guard_prefix_ {
-		panic("ERROR: guard_prefix, reblog_cmd or favourite_cmd MUST differ")
-	} //https://chaos.social/@realraum/101880653017828628
+	must_be_unique_matrix_confignames_ := []string{"guard_prefix", "directtoot_prefix", "directtweet_prefix", "reblog_cmd", "favourite_cmd"}
+	must_be_unique_matrix_configvalues_ := []string{guard_prefix_, directtoot_prefix_, directtweet_prefix_, reblog_cmd_, favourite_cmd_}
+
+	for idx, cmd := range must_be_unique_matrix_configvalues_ {
+		if strings.ContainsAny(cmd, "\t \n") {
+			panic(fmt.Sprintf("ERROR: config value [matrix]%s cannot contain whitespace!", must_be_unique_matrix_confignames_[idx]))
+		}
+		if len(strings.TrimSpace(cmd)) == 0 {
+			panic(fmt.Sprintf("ERROR: config value [matrix]%s cannot be empty!", must_be_unique_matrix_confignames_[idx]))
+		}
+	}
+	for idx1, cmd1 := range must_be_unique_matrix_configvalues_[0 : len(must_be_unique_matrix_configvalues_)-2] {
+		for idx2, cmd2 := range must_be_unique_matrix_configvalues_[idx1+1:] {
+			minlen := len(cmd1)
+			if len(cmd2) < minlen {
+				minlen = len(cmd2)
+			}
+			if cmd1[:minlen] == cmd2[:minlen] {
+				panic(fmt.Sprintf("ERROR: %s and %s MUST differ and not overlap", must_be_unique_matrix_confignames_[idx1], must_be_unique_matrix_confignames_[idx2]))
+			}
+		}
+	}
 
 	////////////////////////////////////////////////////////////
 	//// run main Main where a defer will still be called before we exit

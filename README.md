@@ -70,6 +70,8 @@ room_id=!iasdfadsfadsfafs:matrix.org
 guard_prefix=t>
 reblog_cmd=reblog>
 favourite_cmd=+1>
+directtoot_prefix=dtoot>
+directtweet_prefix=dtweet>
 join_welcome_text="Welcome! Warning: Everything you say I will toot and/or tweet to the world if it starts with t>"
 admins_can_redact_user_status=false
 
