@@ -22,11 +22,13 @@ const (
 var (
 	mastodon_status_uri_re_ *regexp.Regexp
 	twitter_status_uri_re_  *regexp.Regexp
+	directmsg_re_           *regexp.Regexp
 )
 
 func init() {
 	mastodon_status_uri_re_ = regexp.MustCompile(`^https?://[^/]+/@\w+/(\d+)$`)
 	twitter_status_uri_re_ = regexp.MustCompile(`^https?://twitter\.com/.+/status(?:es)?/(\d+)$`)
+	directmsg_re_ = regexp.MustCompile(`(?:^|\s)(@\w+(?:@[a-zA-Z0-9.]+)?)(?:\W|$)`)
 }
 
 func mxNotify(client *gomatrix.Client, from, msg string) {
@@ -194,6 +196,86 @@ func runMatrixPublishBot() {
 								mxNotify(mxcli, "favourite", fmt.Sprintf("error favouriting: %s", err.Error()))
 							}
 						}()
+					} else if strings.HasPrefix(post, directtweet_prefix_) {
+						/// CMD Twitter Direct Message
+
+						if c["server"]["twitter"] != "true" {
+							return
+						}
+
+						post = strings.TrimSpace(post[len(directtweet_prefix_):])
+
+						if len(post) > character_limit_twitter_ {
+							log.Println("Direct Tweet too long")
+							mxNotify(mxcli, "directtweet", fmt.Sprintf("Not direct-tweeting this! Too long"))
+							return
+						}
+
+						m := directmsg_re_.FindStringSubmatch(post)
+						if len(m) < 2 {
+							mxNotify(mxcli, "directtweet", "No can do! A direct message requires a recepient. Please mention an @screenname.")
+							return
+						}
+
+						go func() {
+							for _, rcpt := range m[1:] {
+								err := sendTwitterDirectMessage(tclient, post, rcpt)
+								if err != nil {
+									mxNotify(mxcli, "directtweet", fmt.Sprintf("Error Twitter-direct-messaging %s: %s", rcpt, err.Error()))
+								}
+							}
+						}()
+
+					} else if strings.HasPrefix(post, directtoot_prefix_) {
+						/// CMD Mastodon Direct Toot
+
+						log.Println("direct toot")
+
+						if c["server"]["mastodon"] != "true" {
+							return
+						}
+
+						post = strings.TrimSpace(post[len(directtoot_prefix_):])
+
+						if len(post) > character_limit_mastodon_ {
+							log.Println("Direct Toot too long")
+							mxNotify(mxcli, "directtoot", "Not tooting this! Too long")
+							return
+						}
+
+						if directmsg_re_.MatchString(post) == false {
+							mxNotify(mxcli, "directtoot", "No can do! A direct message requires a recepient. Please mention an @username.")
+							return
+						}
+
+						go func() {
+							lock := getPerUserLock(ev.Sender)
+							lock.Lock()
+							defer lock.Unlock()
+							var reviewurl string
+							var mastodonid mastodon.ID
+
+							reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender, true)
+							if markseen_c != nil {
+								markseen_c <- mastodonid
+							}
+							if err != nil {
+								log.Println("MastodonTootERROR:", err)
+								mxNotify(mxcli, "mastodon", "ERROR while tooting!")
+							} else {
+								mxNotify(mxcli, "mastodon", fmt.Sprintf("sent direct toot! %s", reviewurl))
+							}
+
+							//remember posted status IDs
+							rums_store_chan <- RUMSStoreMsg{key: ev.ID, data: MsgStatusData{ev.Sender, mastodonid, 0, actionPost}}
+
+							//remove saved image file if present. We only attach an image once.
+							if c.GetValueDefault("images", "enabled", "false") == "true" {
+								rmAllUserFiles(ev.Sender)
+							}
+
+						}()
+
 					} else if strings.HasPrefix(post, guard_prefix_) {
 						/// CMD Posting
 
@@ -214,7 +296,7 @@ func runMatrixPublishBot() {
 							var mastodonid mastodon.ID
 
 							if c["server"]["mastodon"] == "true" {
-								reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender)
+								reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender, false)
 								if markseen_c != nil {
 									markseen_c <- mastodonid
 								}

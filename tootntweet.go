@@ -66,6 +66,11 @@ func sendTweet(client *anaconda.TwitterApi, post, matrixnick string) (weburl str
 	return
 }
 
+func sendTwitterDirectMessage(client *anaconda.TwitterApi, post, twitterhandle string) error {
+	_, err := client.PostDMToScreenName(post, twitterhandle)
+	return err
+}
+
 func getImagesForTweet(client *anaconda.TwitterApi, nick string) ([]string, error) {
 	imagepaths, err := getUserFileList(nick)
 	if err != nil {
@@ -103,13 +108,19 @@ func initMastodonClient() *mastodon.Client {
 	})
 }
 
-func sendToot(client *mastodon.Client, post, matrixnick string) (weburl string, statusid mastodon.ID, err error) {
+func sendToot(client *mastodon.Client, post, matrixnick string, directmsg bool) (weburl string, statusid mastodon.ID, err error) {
 	var mids []mastodon.ID
 	usertoot := &mastodon.Toot{Status: post}
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
 		if mids, err = getImagesForToot(client, matrixnick); err == nil && mids != nil {
 			usertoot.MediaIDs = mids
 		}
+	}
+	if directmsg {
+		usertoot.Visibility = "direct"
+		// usertoot.InReplyToID = TODO get last directmsg-ID IFF sender equals recipient in this post
+	} else {
+		usertoot.Visibility = "public"
 	}
 	// log.Println("sendToot", usertoot)
 	var mstatus *mastodon.Status
