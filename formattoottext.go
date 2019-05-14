@@ -54,13 +54,15 @@ func formatNotificationForMatrix(notification *mastodon.Notification) (body, htm
 	var content_text string
 	var content_html string
 	var url string
+	var visibility string
 	if notification.Status != nil {
 		url, content_text, content_html = sanitizeFormatStatusForMatrix(notification.Status)
+		visibility = notification.Status.Visibility
 	}
 	switch notification.Type {
 	case "mention":
-		body = fmt.Sprintf("%s mentioned you [ in ]:\n%s\n%s", sender, url, content_text)
-		htmlbody = fmt.Sprintf("<u><strong>%s</strong> mentioned you in <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, url, url, content_html)
+		body = fmt.Sprintf("%s mentioned you in %s status [ %s ]:\n%s", sender, visibility, url, content_text)
+		htmlbody = fmt.Sprintf("<u><strong>%s</strong> mentioned you in %s status <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, visibility, url, url, content_html)
 	case "reblog":
 		body = fmt.Sprintf("%s reblogged your status [ %s ]", sender, url)
 		htmlbody = fmt.Sprintf("<strong>%s</strong> reblogged your status <a href=\"%s\">%s</a>", sender, url, url)
