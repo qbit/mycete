@@ -10,16 +10,21 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-func formatUserNameForMatrix(acct mastodon.Account) string {
+func formatUserNameForMatrix(acct mastodon.Account) (dn string, h string) {
 	tagstripper := bluemonday.StrictPolicy()
-	if sender3 := strings.TrimSpace(html.UnescapeString(tagstripper.Sanitize(acct.DisplayName))); len(sender3) > 0 {
-		return sender3
-	}
-	if sender2 := strings.TrimSpace(html.UnescapeString(tagstripper.Sanitize(acct.Username))); len(sender2) > 0 {
-		return sender2
-	}
+	username := strings.TrimSpace(html.UnescapeString(tagstripper.Sanitize(acct.Username)))
+	displayname := strings.TrimSpace(html.UnescapeString(tagstripper.Sanitize(acct.DisplayName)))
 	sender1 := strings.TrimSpace(html.UnescapeString(tagstripper.Sanitize(acct.Acct)))
-	return sender1
+	dn = "@" + sender1
+	if len(username) > 0 {
+		h = dn
+		dn = "@" + username
+	}
+	if len(displayname) > 0 {
+		h = dn
+		dn = displayname
+	}
+	return
 }
 
 func sanitizeFormatStatusForMatrix(status *mastodon.Status) (url, body, htmlbody string) {
@@ -41,16 +46,16 @@ func sanitizeFormatStatusForMatrix(status *mastodon.Status) (url, body, htmlbody
 }
 
 func formatStatusForMatrix(status *mastodon.Status) (body, htmlbody string) {
-	sender := formatUserNameForMatrix(status.Account)
+	sender, handle := formatUserNameForMatrix(status.Account)
 	url, body, htmlbody := sanitizeFormatStatusForMatrix(status)
 
-	body = fmt.Sprintf("%s [ %s ]>\n%s", sender, url, body)
-	htmlbody = fmt.Sprintf("<u><strong>%s</strong> writes in <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, url, url, htmlbody)
+	body = fmt.Sprintf("%s (%s) [ %s ]>\n%s", sender, handle, url, body)
+	htmlbody = fmt.Sprintf("<u><strong>%s</strong> (%s) writes in <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, handle, url, url, htmlbody)
 	return
 }
 
 func formatNotificationForMatrix(notification *mastodon.Notification) (body, htmlbody string) {
-	sender := formatUserNameForMatrix(notification.Account)
+	sender, handle := formatUserNameForMatrix(notification.Account)
 	var content_text string
 	var content_html string
 	var url string
@@ -61,26 +66,26 @@ func formatNotificationForMatrix(notification *mastodon.Notification) (body, htm
 	}
 	switch notification.Type {
 	case "mention":
-		body = fmt.Sprintf("%s mentioned you in %s status [ %s ]:\n%s", sender, visibility, url, content_text)
-		htmlbody = fmt.Sprintf("<u><strong>%s</strong> mentioned you in %s status <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, visibility, url, url, content_html)
+		body = fmt.Sprintf("%s (%s) mentioned you in %s status [ %s ]:\n%s", sender, handle, visibility, url, content_text)
+		htmlbody = fmt.Sprintf("<u><strong>%s</strong> (%s) mentioned you in %s status <a href=\"%s\">%s</a>&gt;</u><br/>%s", sender, handle, visibility, url, url, content_html)
 	case "reblog":
-		body = fmt.Sprintf("%s reblogged your status [ %s ]", sender, url)
-		htmlbody = fmt.Sprintf("<strong>%s</strong> reblogged your status <a href=\"%s\">%s</a>", sender, url, url)
+		body = fmt.Sprintf("%s (%s) reblogged your status [ %s ]", sender, handle, url)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> (%s) reblogged your status <a href=\"%s\">%s</a>", sender, handle, url, url)
 	case "favourite":
-		body = fmt.Sprintf("%s favourited your status [ %s ]", sender, url)
-		htmlbody = fmt.Sprintf("<strong>%s</strong> favourited your status <a href=\"%s\">%s</a>", sender, url, url)
+		body = fmt.Sprintf("%s (%s) favourited your status [ %s ]", sender, handle, url)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> (%s) favourited your status <a href=\"%s\">%s</a>", sender, handle, url, url)
 	case "follow":
-		body = fmt.Sprintf("%s is following you now", sender)
-		htmlbody = fmt.Sprintf("<strong>%s</strong> is following you now", sender)
+		body = fmt.Sprintf("%s (%s) is following you now", sender, handle)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> (%s) is following you now", sender, handle)
 	case "follow_request":
-		body = fmt.Sprintf("%s would like to follow you!", sender)
-		htmlbody = fmt.Sprintf("<strong>%s</strong> would like to follow you!", sender)
+		body = fmt.Sprintf("%s (%s) would like to follow you!", sender, handle)
+		htmlbody = fmt.Sprintf("<strong>%s</strong> (%s) would like to follow you!", sender, handle)
 	case "poll":
 		body = fmt.Sprintf("the result of %s's poll is in: %s", sender, url)
 		htmlbody = fmt.Sprintf("the result of <strong>%s</strong>'s poll is in: <a href=\"%s\">%s</a>", sender, url, url)
 	default:
-		body = fmt.Sprintf("received unsupported notification of type %s from %s", notification.Type, sender)
-		htmlbody = fmt.Sprintf("received unsupported notification of type %s from %s", notification.Type, sender)
+		body = fmt.Sprintf("received unsupported notification of type %s from %s (%s)", notification.Type, sender, handle)
+		htmlbody = fmt.Sprintf("received unsupported notification of type %s from %s (%s)", notification.Type, sender, handle)
 	}
 	return
 }
