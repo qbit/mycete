@@ -47,6 +47,14 @@ In addition to the home stream, it is possible to subscribe tag streams using `[
 
 If you don't need this, just leave `configurations` empty or remove all `feed2morerooms` sections.
 
+## Building
+
+```
+git clone https://github.com/qbit/mycete
+cd mycete
+go build
+```
+
 ## Example Config
 
 ```
