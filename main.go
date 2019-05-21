@@ -21,16 +21,61 @@ var (
 	feed2matrx_image_bytes_limit_  int64
 	feed2matrx_image_count_limit_  int
 	matrix_notice_character_limit_ int = 1000
-	guard_prefix_                  string
-	directtoot_prefix_             string
-	directtweet_prefix_            string
-	reblog_prefix_                 string
-	favourite_prefix_              string
 )
+
+type ConfigValueDescriptor struct {
+	ConfSection string
+	ConfName    string
+	Default     string
+}
 
 /// Function Name Coding Standard
 /// func runMyFunction    ... function that does not return and could be run a gorouting, e.g. go runMyFunction
 /// func taskMyFunction  ... function that internally lauches a goroutine
+
+func hasStringMatchingPrefix(a, b string) bool {
+	minlen := len(a)
+	if len(b) < minlen {
+		minlen = len(b)
+	}
+	return a[:minlen] == b[:minlen]
+
+}
+
+func configSanityChecksAndDefaults() {
+	must_be_unique_and_present_configvalues := []ConfigValueDescriptor{
+		ConfigValueDescriptor{"matrix", "guard_prefix", "t>"},
+		ConfigValueDescriptor{"matrix", "directtoot_prefix", "dm>"},
+		ConfigValueDescriptor{"matrix", "directtootreply_prefix", "reply>"},
+		ConfigValueDescriptor{"matrix", "directtweet_prefix", "tdm>"},
+		ConfigValueDescriptor{"matrix", "reblog_prefix", "reblog>"},
+		ConfigValueDescriptor{"matrix", "favourite_prefix", "+1>"},
+	}
+
+	for _, cfgval := range must_be_unique_and_present_configvalues {
+		if !c.SectionInConfig(cfgval.ConfSection) {
+			panic(fmt.Sprintf("ERROR: config section [%s] must exist!", cfgval.ConfSection))
+		}
+		cmd := strings.TrimSpace(c.GetValueDefault(cfgval.ConfSection, cfgval.ConfName, cfgval.Default))
+		if strings.ContainsAny(cmd, "\t \n") {
+			panic(fmt.Sprintf("ERROR: config value [%s]%s cannot contain whitespace!", cfgval.ConfSection, cfgval.ConfName))
+		}
+		if len(cmd) == 0 {
+			panic(fmt.Sprintf("ERROR: config value [%s]%s cannot be empty!", cfgval.ConfSection, cfgval.ConfName))
+		}
+		c[cfgval.ConfSection][cfgval.ConfName] = cmd
+	}
+	for idx1, cfgval1 := range must_be_unique_and_present_configvalues[0 : len(must_be_unique_and_present_configvalues)-1] {
+		for _, cfgval2 := range must_be_unique_and_present_configvalues[idx1+1:] {
+			cmd1 := c[cfgval1.ConfSection][cfgval1.ConfName]
+			cmd2 := c[cfgval2.ConfSection][cfgval2.ConfName]
+			if hasStringMatchingPrefix(cmd1, cmd2) {
+				panic(fmt.Sprintf("ERROR: [%s]%s and [%s]%s MUST differ and not overlap", cfgval1.ConfSection, cfgval1.ConfName, cfgval2.ConfSection, cfgval2.ConfName))
+			}
+		}
+	}
+
+}
 
 func mainWithDefers() {
 	var err error
@@ -89,33 +134,7 @@ func main() {
 		panic(err)
 	}
 
-	guard_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "guard_prefix", "t>"))
-	directtoot_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "directtoot_prefix", "dtoot>"))
-	directtweet_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "directtweet_prefix", "dtweet>"))
-	reblog_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "reblog_prefix", "reblog>"))
-	favourite_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "favourite_prefix", "+1>"))
-	must_be_unique_matrix_confignames_ := []string{"guard_prefix", "directtoot_prefix", "directtweet_prefix", "reblog_prefix", "favourite_prefix"}
-	must_be_unique_matrix_configvalues_ := []string{guard_prefix_, directtoot_prefix_, directtweet_prefix_, reblog_prefix_, favourite_prefix_}
-
-	for idx, cmd := range must_be_unique_matrix_configvalues_ {
-		if strings.ContainsAny(cmd, "\t \n") {
-			panic(fmt.Sprintf("ERROR: config value [matrix]%s cannot contain whitespace!", must_be_unique_matrix_confignames_[idx]))
-		}
-		if len(strings.TrimSpace(cmd)) == 0 {
-			panic(fmt.Sprintf("ERROR: config value [matrix]%s cannot be empty!", must_be_unique_matrix_confignames_[idx]))
-		}
-	}
-	for idx1, cmd1 := range must_be_unique_matrix_configvalues_[0 : len(must_be_unique_matrix_configvalues_)-2] {
-		for idx2, cmd2 := range must_be_unique_matrix_configvalues_[idx1+1:] {
-			minlen := len(cmd1)
-			if len(cmd2) < minlen {
-				minlen = len(cmd2)
-			}
-			if cmd1[:minlen] == cmd2[:minlen] {
-				panic(fmt.Sprintf("ERROR: %s and %s MUST differ and not overlap", must_be_unique_matrix_confignames_[idx1], must_be_unique_matrix_confignames_[idx2]))
-			}
-		}
-	}
+	configSanityChecksAndDefaults()
 
 	////////////////////////////////////////////////////////////
 	//// run main Main where a defer will still be called before we exit

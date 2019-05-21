@@ -128,11 +128,11 @@ func runMatrixPublishBot() {
 			case "m.text":
 				if post, ok := ev.Body(); ok {
 					log.Printf("Message: '%s'", post)
-					if strings.HasPrefix(post, reblog_prefix_) {
+					if strings.HasPrefix(post, c["matrix"]["reblog_prefix"]) {
 						/// CMD Reblogging
 
 						go func() {
-							if err := parseReblogFavouriteArgs(reblog_prefix_, post, mxcli,
+							if err := parseReblogFavouriteArgs(c["matrix"]["reblog_prefix"], post, mxcli,
 								func(statusid string) error {
 									_, err := mclient.Reblog(context.Background(), mastodon.ID(statusid))
 									if err == nil {
@@ -162,11 +162,11 @@ func runMatrixPublishBot() {
 								mxNotify(mxcli, "reblog", fmt.Sprintf("error reblogging/retweeting: %s", err.Error()))
 							}
 						}()
-					} else if strings.HasPrefix(post, favourite_prefix_) {
+					} else if strings.HasPrefix(post, c["matrix"]["favourite_prefix"]) {
 						/// CMD Favourite
 
 						go func() {
-							err := parseReblogFavouriteArgs(favourite_prefix_, post, mxcli,
+							err := parseReblogFavouriteArgs(c["matrix"]["favourite_prefix"], post, mxcli,
 								func(statusid string) error {
 									_, err := mclient.Favourite(context.Background(), mastodon.ID(statusid))
 									if err == nil {
@@ -196,14 +196,14 @@ func runMatrixPublishBot() {
 								mxNotify(mxcli, "favourite", fmt.Sprintf("error favouriting: %s", err.Error()))
 							}
 						}()
-					} else if strings.HasPrefix(post, directtweet_prefix_) {
+					} else if strings.HasPrefix(post, c["matrix"]["directtweet_prefix"]) {
 						/// CMD Twitter Direct Message
 
 						if c["server"]["twitter"] != "true" {
 							return
 						}
 
-						post = strings.TrimSpace(post[len(directtweet_prefix_):])
+						post = strings.TrimSpace(post[len(c["matrix"]["directtweet_prefix"]):])
 
 						if len(post) > character_limit_twitter_ {
 							log.Println("Direct Tweet too long")
@@ -226,7 +226,7 @@ func runMatrixPublishBot() {
 							}
 						}()
 
-					} else if strings.HasPrefix(post, directtoot_prefix_) {
+					} else if strings.HasPrefix(post, c["matrix"]["directtoot_prefix"]) {
 						/// CMD Mastodon Direct Toot
 
 						log.Println("direct toot")
@@ -235,7 +235,7 @@ func runMatrixPublishBot() {
 							return
 						}
 
-						post = strings.TrimSpace(post[len(directtoot_prefix_):])
+						post = strings.TrimSpace(post[len(c["matrix"]["directtoot_prefix"]):])
 
 						if len(post) > character_limit_mastodon_ {
 							log.Println("Direct Toot too long")
@@ -276,10 +276,10 @@ func runMatrixPublishBot() {
 
 						}()
 
-					} else if strings.HasPrefix(post, guard_prefix_) {
+					} else if strings.HasPrefix(post, c["matrix"]["guard_prefix"]) {
 						/// CMD Posting
 
-						post = strings.TrimSpace(post[len(guard_prefix_):])
+						post = strings.TrimSpace(post[len(c["matrix"]["guard_prefix"]):])
 
 						if err = checkCharacterLimit(post); err != nil {
 							log.Println(err)
