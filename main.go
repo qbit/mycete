@@ -24,8 +24,8 @@ var (
 	guard_prefix_                  string
 	directtoot_prefix_             string
 	directtweet_prefix_            string
-	reblog_cmd_                    string
-	favourite_cmd_                 string
+	reblog_prefix_                 string
+	favourite_prefix_              string
 )
 
 /// Function Name Coding Standard
@@ -92,10 +92,10 @@ func main() {
 	guard_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "guard_prefix", "t>"))
 	directtoot_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "directtoot_prefix", "dtoot>"))
 	directtweet_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "directtweet_prefix", "dtweet>"))
-	reblog_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "reblog_cmd", "reblog>"))
-	favourite_cmd_ = strings.TrimSpace(c.GetValueDefault("matrix", "favourite_cmd", "+1>"))
-	must_be_unique_matrix_confignames_ := []string{"guard_prefix", "directtoot_prefix", "directtweet_prefix", "reblog_cmd", "favourite_cmd"}
-	must_be_unique_matrix_configvalues_ := []string{guard_prefix_, directtoot_prefix_, directtweet_prefix_, reblog_cmd_, favourite_cmd_}
+	reblog_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "reblog_prefix", "reblog>"))
+	favourite_prefix_ = strings.TrimSpace(c.GetValueDefault("matrix", "favourite_prefix", "+1>"))
+	must_be_unique_matrix_confignames_ := []string{"guard_prefix", "directtoot_prefix", "directtweet_prefix", "reblog_prefix", "favourite_prefix"}
+	must_be_unique_matrix_configvalues_ := []string{guard_prefix_, directtoot_prefix_, directtweet_prefix_, reblog_prefix_, favourite_prefix_}
 
 	for idx, cmd := range must_be_unique_matrix_configvalues_ {
 		if strings.ContainsAny(cmd, "\t \n") {

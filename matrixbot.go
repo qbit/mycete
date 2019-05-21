@@ -128,11 +128,11 @@ func runMatrixPublishBot() {
 			case "m.text":
 				if post, ok := ev.Body(); ok {
 					log.Printf("Message: '%s'", post)
-					if strings.HasPrefix(post, reblog_cmd_) {
+					if strings.HasPrefix(post, reblog_prefix_) {
 						/// CMD Reblogging
 
 						go func() {
-							if err := parseReblogFavouriteArgs(reblog_cmd_, post, mxcli,
+							if err := parseReblogFavouriteArgs(reblog_prefix_, post, mxcli,
 								func(statusid string) error {
 									_, err := mclient.Reblog(context.Background(), mastodon.ID(statusid))
 									if err == nil {
@@ -162,11 +162,11 @@ func runMatrixPublishBot() {
 								mxNotify(mxcli, "reblog", fmt.Sprintf("error reblogging/retweeting: %s", err.Error()))
 							}
 						}()
-					} else if strings.HasPrefix(post, favourite_cmd_) {
+					} else if strings.HasPrefix(post, favourite_prefix_) {
 						/// CMD Favourite
 
 						go func() {
-							err := parseReblogFavouriteArgs(favourite_cmd_, post, mxcli,
+							err := parseReblogFavouriteArgs(favourite_prefix_, post, mxcli,
 								func(statusid string) error {
 									_, err := mclient.Favourite(context.Background(), mastodon.ID(statusid))
 									if err == nil {
