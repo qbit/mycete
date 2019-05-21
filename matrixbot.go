@@ -327,6 +327,19 @@ func runMatrixPublishBot() {
 							}
 
 						}()
+
+					} else if strings.HasPrefix(post, c["matrix"]["help_prefix"]) {
+						/// CMD Help
+
+						mxNotify(mxcli, "helptext", strings.Join([]string{
+							"List of available command prefixes:",
+							c["matrix"]["guard_prefix"] + " This text following the prefix at start of this line would be tweeted and tooted",
+							c["matrix"]["directtoot_prefix"] + " This text following the prefix at start of this line would be tooted privated @user if at least one @user is contained in this line",
+							c["matrix"]["directtootreply_prefix"] + " <toot url> Just like above but in reply to a given toot.",
+							c["matrix"]["directtweet_prefix"] + " Buggy and does not work",
+							c["matrix"]["reblog_prefix"] + " <toot url | twitter url> will be reblogged or retweeted",
+							c["matrix"]["favourite_prefix"] + " <toot url | twitter url> will be favourited",
+						}, "\n"))
 					}
 				}
 			case "m.image":

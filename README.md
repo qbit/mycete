@@ -73,6 +73,7 @@ favourite_prefix=+1>
 directtoot_prefix=dm>
 directtootreply_prefix=reply>
 directtweet_prefix=tdm>
+help_prefix=!help
 join_welcome_text="Welcome! Warning: Everything you say I will toot and/or tweet to the world if it starts with t>"
 admins_can_redact_user_status=false
 

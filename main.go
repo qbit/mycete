@@ -50,6 +50,7 @@ func configSanityChecksAndDefaults() {
 		ConfigValueDescriptor{"matrix", "directtweet_prefix", "tdm>"},
 		ConfigValueDescriptor{"matrix", "reblog_prefix", "reblog>"},
 		ConfigValueDescriptor{"matrix", "favourite_prefix", "+1>"},
+		ConfigValueDescriptor{"matrix", "help_prefix", "!help"},
 	}
 
 	for _, cfgval := range must_be_unique_and_present_configvalues {
