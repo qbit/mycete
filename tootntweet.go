@@ -108,7 +108,7 @@ func initMastodonClient() *mastodon.Client {
 	})
 }
 
-func sendToot(client *mastodon.Client, post, matrixnick string, directmsg bool) (weburl string, statusid mastodon.ID, err error) {
+func sendToot(client *mastodon.Client, post, matrixnick string, directmsg bool, inreplyto string) (weburl string, statusid mastodon.ID, err error) {
 	var mids []mastodon.ID
 	usertoot := &mastodon.Toot{Status: post}
 	if c.GetValueDefault("images", "enabled", "false") == "true" {
@@ -121,6 +121,9 @@ func sendToot(client *mastodon.Client, post, matrixnick string, directmsg bool) 
 		// usertoot.InReplyToID = TODO get last directmsg-ID IFF sender equals recipient in this post
 	} else {
 		usertoot.Visibility = "public"
+	}
+	if len(inreplyto) > 0 {
+		usertoot.InReplyToID = mastodon.ID(inreplyto)
 	}
 	// log.Println("sendToot", usertoot)
 	var mstatus *mastodon.Status

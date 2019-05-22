@@ -226,16 +226,30 @@ func runMatrixPublishBot() {
 							}
 						}()
 
-					} else if strings.HasPrefix(post, c["matrix"]["directtoot_prefix"]) {
+					} else if strings.HasPrefix(post, c["matrix"]["directtoot_prefix"]) || strings.HasPrefix(post, c["matrix"]["directtootreply_prefix"]) {
 						/// CMD Mastodon Direct Toot
 
-						log.Println("direct toot")
+						log.Println("direct toot or reply")
 
 						if c["server"]["mastodon"] != "true" {
 							return
 						}
 
-						post = strings.TrimSpace(post[len(c["matrix"]["directtoot_prefix"]):])
+						if strings.HasPrefix(post, c["matrix"]["directtoot_prefix"]) {
+							post = strings.TrimSpace(post[len(c["matrix"]["directtoot_prefix"]):])
+						} else {
+							post = strings.TrimSpace(post[len(c["matrix"]["directtootreply_prefix"]):])
+						}
+
+						var inreplyto string
+						arglist := strings.SplitN(post, " ", 2)
+						if arglist != nil && len(arglist) == 2 {
+							matchlist := mastodon_status_uri_re_.FindStringSubmatch(strings.TrimSpace(arglist[0]))
+							if len(matchlist) >= 2 {
+								inreplyto = matchlist[1]
+								post = strings.TrimSpace(arglist[1])
+							}
+						}
 
 						if len(post) > character_limit_mastodon_ {
 							log.Println("Direct Toot too long")
@@ -255,7 +269,7 @@ func runMatrixPublishBot() {
 							var reviewurl string
 							var mastodonid mastodon.ID
 
-							reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender, true)
+							reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender, true, inreplyto)
 							if markseen_c != nil {
 								markseen_c <- mastodonid
 							}
@@ -296,7 +310,7 @@ func runMatrixPublishBot() {
 							var mastodonid mastodon.ID
 
 							if c["server"]["mastodon"] == "true" {
-								reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender, false)
+								reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender, false, "")
 								if markseen_c != nil {
 									markseen_c <- mastodonid
 								}
