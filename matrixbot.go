@@ -26,8 +26,8 @@ var (
 )
 
 func init() {
-	mastodon_status_uri_re_ = regexp.MustCompile(`^https?://[^/]+/(?:@\w+|statuses)/(\d+)$`)
-	twitter_status_uri_re_ = regexp.MustCompile(`^https?://twitter\.com/.+/status(?:es)?/(\d+)$`)
+	mastodon_status_uri_re_ = regexp.MustCompile(`^https?://[^/]+/(?:@\w+|web/statuses)/(\d+)$`)
+	twitter_status_uri_re_ = regexp.MustCompile(`^https?://(?:mobile\.)?twitter\.com/.+/status(?:es)?/(\d+)$`)
 	directmsg_re_ = regexp.MustCompile(`(?:^|\s)(@\w+(?:@[a-zA-Z0-9.]+)?)(?:\W|$)`)
 }
 
