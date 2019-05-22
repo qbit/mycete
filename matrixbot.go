@@ -26,7 +26,7 @@ var (
 )
 
 func init() {
-	mastodon_status_uri_re_ = regexp.MustCompile(`^https?://[^/]+/@\w+/(\d+)$`)
+	mastodon_status_uri_re_ = regexp.MustCompile(`^https?://[^/]+/(?:@\w+|statuses)/(\d+)$`)
 	twitter_status_uri_re_ = regexp.MustCompile(`^https?://twitter\.com/.+/status(?:es)?/(\d+)$`)
 	directmsg_re_ = regexp.MustCompile(`(?:^|\s)(@\w+(?:@[a-zA-Z0-9.]+)?)(?:\W|$)`)
 }
@@ -281,7 +281,7 @@ func runMatrixPublishBot() {
 								log.Println("MastodonTootERROR:", err)
 								mxNotify(mxcli, "mastodon", "ERROR while tooting!")
 							} else {
-								mxNotify(mxcli, "mastodon", fmt.Sprintf("sent direct toot! %s", reviewurl))
+								mxNotify(mxcli, "mastodon", fmt.Sprintf("sent toot! %s", reviewurl))
 							}
 
 							//remember posted status IDs
