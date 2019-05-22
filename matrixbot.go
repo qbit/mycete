@@ -226,7 +226,7 @@ func runMatrixPublishBot() {
 							}
 						}()
 
-					} else if strings.HasPrefix(post, c["matrix"]["directtoot_prefix"]) || strings.HasPrefix(post, c["matrix"]["directtootreply_prefix"]) {
+					} else if strings.HasPrefix(post, c["matrix"]["directtoot_prefix"]) || strings.HasPrefix(post, c["matrix"]["tootreply_prefix"]) {
 						/// CMD Mastodon Direct Toot
 
 						log.Println("direct toot or reply")
@@ -235,13 +235,17 @@ func runMatrixPublishBot() {
 							return
 						}
 
+						var inreplyto string
+						var private bool
+
 						if strings.HasPrefix(post, c["matrix"]["directtoot_prefix"]) {
 							post = strings.TrimSpace(post[len(c["matrix"]["directtoot_prefix"]):])
+							private = true
 						} else {
-							post = strings.TrimSpace(post[len(c["matrix"]["directtootreply_prefix"]):])
+							post = strings.TrimSpace(post[len(c["matrix"]["tootreply_prefix"]):])
+							private = false
 						}
 
-						var inreplyto string
 						arglist := strings.SplitN(post, " ", 2)
 						if arglist != nil && len(arglist) == 2 {
 							matchlist := mastodon_status_uri_re_.FindStringSubmatch(strings.TrimSpace(arglist[0]))
@@ -269,7 +273,7 @@ func runMatrixPublishBot() {
 							var reviewurl string
 							var mastodonid mastodon.ID
 
-							reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender, true, inreplyto)
+							reviewurl, mastodonid, err = sendToot(mclient, post, ev.Sender, private, inreplyto)
 							if markseen_c != nil {
 								markseen_c <- mastodonid
 							}
@@ -348,8 +352,8 @@ func runMatrixPublishBot() {
 						mxNotify(mxcli, "helptext", strings.Join([]string{
 							"List of available command prefixes:",
 							c["matrix"]["guard_prefix"] + " This text following the prefix at start of this line would be tweeted and tooted",
-							c["matrix"]["directtoot_prefix"] + " This text following the prefix at start of this line would be tooted privated @user if at least one @user is contained in this line",
-							c["matrix"]["directtootreply_prefix"] + " <toot url> Just like above but in reply to a given toot.",
+							c["matrix"]["directtoot_prefix"] + " [toot url] This text following would be tooted privately @user if at least one @user is contained in this line. Optionally in reply to a [toot url] given at the start.",
+							c["matrix"]["tootreply_prefix"] + " <toot url> This will publicly reply to a given toot. Only works in-instance for now.",
 							c["matrix"]["directtweet_prefix"] + " Buggy and does not work",
 							c["matrix"]["reblog_prefix"] + " <toot url | twitter url> will be reblogged or retweeted",
 							c["matrix"]["favourite_prefix"] + " <toot url | twitter url> will be favourited",
