@@ -16,7 +16,7 @@ const character_limit_mastodon_ int = 500
 const imgbytes_limit_twitter_ int64 = 5242880
 const imgbytes_limit_mastodon_ int64 = 4 * 1024 * 1024
 
-const webbaseformaturl_twitter_ string = "https://twitter.com/statuses/%s"
+const webbaseformaturl_twitter_ string = "https://twitter.com/i/web/status/%s"
 
 func checkCharacterLimit(status string) error {
 	// get minimum character limit
