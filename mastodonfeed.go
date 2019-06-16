@@ -55,7 +55,7 @@ func (frc *FeedRoomConnector) runSplitMastodonEventStream(evChan <-chan mastodon
 		case *mastodon.DeleteEvent:
 			continue
 		default:
-			log.Println("runSplitMastodonEventStream:", "Unhandled event:", eventi)
+			log.Println("runSplitMastodonEventStream:", "Unhandled event: %+v", eventi)
 		}
 	}
 }

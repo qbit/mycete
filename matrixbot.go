@@ -122,7 +122,6 @@ func runMatrixPublishBot() {
 		}
 
 		if mtype, ok := ev.MessageType(); ok {
-			log.Println(ev.Sender)
 			switch mtype {
 			case "m.text":
 				if post, ok := ev.Body(); ok {
