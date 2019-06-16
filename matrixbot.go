@@ -31,9 +31,17 @@ func init() {
 	directmsg_re_ = regexp.MustCompile(`(?:^|\s)(@\w+(?:@[a-zA-Z0-9.]+)?)(?:\W|$)`)
 }
 
-func mxNotify(client *gomatrix.Client, from, msg string) {
+func mxNotify(mxcli *gomatrix.Client, from, to, msg string) {
 	log.Printf("%s: %s\n", from, msg)
-	client.SendText(c["matrix"]["room_id"], msg)
+
+	if tonickonly, err := gomatrix.ExtractUserLocalpart(to); err == nil {
+		text := fmt.Sprintf("%s: %s", tonickonly, msg)
+		htmltext := fmt.Sprintf("<a href=\"https://matrix.to/#/%s\">%s</a>: %s", to, tonickonly, msg)
+
+		mxcli.SendMessageEvent(c["matrix"]["room_id"], "m.room.message", gomatrix.HTMLMessage{MsgType: "m.text", Format: "org.matrix.custom.html", Body: text, FormattedBody: htmltext})
+	} else {
+		mxcli.SendText(c["matrix"]["room_id"], msg)
+	}
 }
 
 // Ignore messages from ourselves
@@ -157,9 +165,9 @@ func runMatrixPublishBot() {
 									return err
 								},
 							); err == nil {
-								mxNotify(mxcli, "reblog", "Ok, I reblogged/retweeted that status for you")
+								mxNotify(mxcli, "reblog", ev.Sender, "Ok, I reblogged/retweeted that status for you")
 							} else {
-								mxNotify(mxcli, "reblog", fmt.Sprintf("error reblogging/retweeting: %s", err.Error()))
+								mxNotify(mxcli, "reblog", ev.Sender, fmt.Sprintf("error reblogging/retweeting: %s", err.Error()))
 							}
 						}()
 					} else if strings.HasPrefix(post, c["matrix"]["favourite_prefix"]) {
@@ -190,10 +198,10 @@ func runMatrixPublishBot() {
 								},
 							)
 							if err == nil {
-								mxNotify(mxcli, "favourite", "Ok, I favourited that status for you")
+								mxNotify(mxcli, "favourite", ev.Sender, "Ok, I favourited that status for you")
 
 							} else {
-								mxNotify(mxcli, "favourite", fmt.Sprintf("error favouriting: %s", err.Error()))
+								mxNotify(mxcli, "favourite", ev.Sender, fmt.Sprintf("error favouriting: %s", err.Error()))
 							}
 						}()
 					} else if strings.HasPrefix(post, c["matrix"]["directtweet_prefix"]) {
@@ -207,13 +215,13 @@ func runMatrixPublishBot() {
 
 						if len(post) > character_limit_twitter_ {
 							log.Println("Direct Tweet too long")
-							mxNotify(mxcli, "directtweet", fmt.Sprintf("Not direct-tweeting this! Too long"))
+							mxNotify(mxcli, "directtweet", ev.Sender, fmt.Sprintf("Not direct-tweeting this! Too long"))
 							return
 						}
 
 						m := directmsg_re_.FindStringSubmatch(post)
 						if len(m) < 2 {
-							mxNotify(mxcli, "directtweet", "No can do! A direct message requires a recepient. Please mention an @screenname.")
+							mxNotify(mxcli, "directtweet", ev.Sender, "No can do! A direct message requires a recepient. Please mention an @screenname.")
 							return
 						}
 
@@ -221,7 +229,7 @@ func runMatrixPublishBot() {
 							for _, rcpt := range m[1:] {
 								err := sendTwitterDirectMessage(tclient, post, rcpt)
 								if err != nil {
-									mxNotify(mxcli, "directtweet", fmt.Sprintf("Error Twitter-direct-messaging %s: %s", rcpt, err.Error()))
+									mxNotify(mxcli, "directtweet", ev.Sender, fmt.Sprintf("Error Twitter-direct-messaging %s: %s", rcpt, err.Error()))
 								}
 							}
 						}()
@@ -257,12 +265,12 @@ func runMatrixPublishBot() {
 
 						if len(post) > character_limit_mastodon_ {
 							log.Println("Direct Toot too long")
-							mxNotify(mxcli, "directtoot", "Not tooting this! Too long")
+							mxNotify(mxcli, "directtoot", ev.Sender, "Not tooting this! Too long")
 							return
 						}
 
 						if directmsg_re_.MatchString(post) == false {
-							mxNotify(mxcli, "directtoot", "No can do! A direct message requires a recepient. Please mention an @username.")
+							mxNotify(mxcli, "directtoot", ev.Sender, "No can do! A direct message requires a recepient. Please mention an @username.")
 							return
 						}
 
@@ -279,9 +287,9 @@ func runMatrixPublishBot() {
 							}
 							if err != nil {
 								log.Println("MastodonTootERROR:", err)
-								mxNotify(mxcli, "mastodon", "ERROR while tooting!")
+								mxNotify(mxcli, "mastodon", ev.Sender, "ERROR while tooting!")
 							} else {
-								mxNotify(mxcli, "mastodon", fmt.Sprintf("sent toot! %s", reviewurl))
+								mxNotify(mxcli, "mastodon", ev.Sender, fmt.Sprintf("sent toot! %s", reviewurl))
 							}
 
 							//remember posted status IDs
@@ -301,7 +309,7 @@ func runMatrixPublishBot() {
 
 						if err = checkCharacterLimit(post); err != nil {
 							log.Println(err)
-							mxNotify(mxcli, "limitcheck", fmt.Sprintf("Not tweeting/tooting this! %s", err.Error()))
+							mxNotify(mxcli, "limitcheck", ev.Sender, fmt.Sprintf("Not tweeting/tooting this! %s", err.Error()))
 							return
 						}
 
@@ -320,9 +328,9 @@ func runMatrixPublishBot() {
 								}
 								if err != nil {
 									log.Println("MastodonTootERROR:", err)
-									mxNotify(mxcli, "mastodon", "ERROR while tooting!")
+									mxNotify(mxcli, "mastodon", ev.Sender, "ERROR while tooting!")
 								} else {
-									mxNotify(mxcli, "mastodon", fmt.Sprintf("sent toot! %s", reviewurl))
+									mxNotify(mxcli, "mastodon", ev.Sender, fmt.Sprintf("sent toot! %s", reviewurl))
 								}
 							}
 
@@ -330,9 +338,9 @@ func runMatrixPublishBot() {
 								reviewurl, twitterid, err = sendTweet(tclient, post, ev.Sender)
 								if err != nil {
 									log.Println("TwitterTweetERROR:", err)
-									mxNotify(mxcli, "twitter", "ERROR while tweeting!")
+									mxNotify(mxcli, "twitter", ev.Sender, "ERROR while tweeting!")
 								} else {
-									mxNotify(mxcli, "twitter", fmt.Sprintf("sent tweet! %s", reviewurl))
+									mxNotify(mxcli, "twitter", ev.Sender, fmt.Sprintf("sent tweet! %s", reviewurl))
 								}
 							}
 
@@ -349,7 +357,7 @@ func runMatrixPublishBot() {
 					} else if strings.HasPrefix(post, c["matrix"]["help_prefix"]) {
 						/// CMD Help
 
-						mxNotify(mxcli, "helptext", strings.Join([]string{
+						mxNotify(mxcli, "helptext", "", strings.Join([]string{
 							"List of available command prefixes:",
 							c["matrix"]["guard_prefix"] + " This text following the prefix at start of this line would be tweeted and tooted",
 							c["matrix"]["directtoot_prefix"] + " [toot url] This text following would be tooted privately @user if at least one @user is contained in this line. Optionally in reply to a [toot url] given at the start.",
@@ -362,7 +370,7 @@ func runMatrixPublishBot() {
 				}
 			case "m.image":
 				if c.GetValueDefault("images", "enabled", "false") != "true" {
-					mxNotify(mxcli, "error", "image support is disabled. Set [images]enabled=true")
+					mxNotify(mxcli, "error", ev.Sender, "image support is disabled. Set [images]enabled=true")
 					fmt.Println("ignoring image since support not enabled in config file")
 					return
 				}
@@ -371,7 +379,7 @@ func runMatrixPublishBot() {
 						if imgsizei, insubmap := infomap["size"]; insubmap {
 							if imgsize, ok2 := imgsizei.(int64); ok2 {
 								if err = checkImageBytesizeLimit(imgsize); err != nil {
-									mxNotify(mxcli, "imagesaver", err.Error())
+									mxNotify(mxcli, "imagesaver", ev.Sender, err.Error())
 									return
 								}
 							}
@@ -385,17 +393,17 @@ func runMatrixPublishBot() {
 							lock.Lock()
 							defer lock.Unlock()
 							if err := saveMatrixFile(mxcli, ev.Sender, ev.ID, url); err != nil {
-								mxNotify(mxcli, "error", "Could not get your image! "+err.Error())
+								mxNotify(mxcli, "error", ev.Sender, "Could not get your image! "+err.Error())
 								fmt.Println("ERROR downloading image:", err)
 								return
 							}
-							mxNotify(mxcli, "imagesaver", fmt.Sprintf("image saved. Will tweet/toot with %s's next message", ev.Sender))
+							mxNotify(mxcli, "imagesaver", ev.Sender, fmt.Sprintf("image saved. Will tweet/toot with %s's next message", ev.Sender))
 						}()
 					}
 				}
 			case "m.video", "m.audio":
 				fmt.Printf("%s messages are currently not supported", mtype)
-				mxNotify(mxcli, "runMatrixPublishBot", "Ahh. Audio/Video files are not supported directly. Please just include it's URL in your Toot/Tweet and Mastodon/Twitter will do the rest.")
+				mxNotify(mxcli, "runMatrixPublishBot", ev.Sender, "Ahh. Audio/Video files are not supported directly. Please just include it's URL in your Toot/Tweet and Mastodon/Twitter will do the rest.")
 			default:
 				fmt.Printf("%s messages are currently not supported", mtype)
 				//remove saved image file if present. We only attach an image once.
@@ -415,7 +423,7 @@ func runMatrixPublishBot() {
 				defer lock.Unlock()
 				err := rmFile(ev.Sender, ev.Redacts)
 				if err == nil {
-					mxNotify(mxcli, "redaction", fmt.Sprintf("%s's image has been redacted. Next toot/weet will not contain that image.", ev.Sender))
+					mxNotify(mxcli, "redaction", ev.Sender, fmt.Sprintf("%s's image has been redacted. Next toot/weet will not contain that image.", ev.Sender))
 				}
 				if err != nil && !os.IsNotExist(err) {
 					log.Println("ERROR deleting image:", err)
@@ -435,58 +443,58 @@ func runMatrixPublishBot() {
 				case actionPost:
 					if rums_ptr.TweetID > 0 {
 						if _, err := tclient.DeleteTweet(rums_ptr.TweetID, true); err == nil {
-							mxNotify(mxcli, "redaction", "Ok, I deleted that tweet for you")
+							mxNotify(mxcli, "redaction", ev.Sender, "Ok, I deleted that tweet for you")
 						} else {
 							log.Println("RedactTweetERROR:", err)
-							mxNotify(mxcli, "redaction", "Could not redact your tweet")
+							mxNotify(mxcli, "redaction", ev.Sender, "Could not redact your tweet")
 						}
 					}
 					if len(rums_ptr.TootID) > 0 {
 						if err := mclient.DeleteStatus(context.Background(), rums_ptr.TootID); err == nil {
-							mxNotify(mxcli, "redaction", "Ok, I deleted that toot for you")
+							mxNotify(mxcli, "redaction", ev.Sender, "Ok, I deleted that toot for you")
 						} else {
 							log.Println("RedactTweetERROR", err)
-							mxNotify(mxcli, "redaction", "Could not redact your toot")
+							mxNotify(mxcli, "redaction", ev.Sender, "Could not redact your toot")
 						}
 					}
 				case actionReblog:
 					if rums_ptr.TweetID > 0 {
 						if _, err := tclient.UnRetweet(rums_ptr.TweetID, true); err == nil {
-							mxNotify(mxcli, "redaction", "Ok, I un-retweetet that tweet for you")
+							mxNotify(mxcli, "redaction", ev.Sender, "Ok, I un-retweetet that tweet for you")
 						} else {
 							log.Println("RedactTweetERROR:", err)
-							mxNotify(mxcli, "redaction", "Could not redact your retweet")
+							mxNotify(mxcli, "redaction", ev.Sender, "Could not redact your retweet")
 						}
 					}
 					if len(rums_ptr.TootID) > 0 {
 						if _, err := mclient.Unreblog(context.Background(), rums_ptr.TootID); err == nil {
-							mxNotify(mxcli, "redaction", "Ok, I un-reblogged that toot for you")
+							mxNotify(mxcli, "redaction", ev.Sender, "Ok, I un-reblogged that toot for you")
 						} else {
 							log.Println("RedactTweetERROR", err)
-							mxNotify(mxcli, "redaction", "Could not redact your reblog")
+							mxNotify(mxcli, "redaction", ev.Sender, "Could not redact your reblog")
 						}
 					}
 				case actionFav:
 					if rums_ptr.TweetID > 0 {
 						if _, err := tclient.Unfavorite(rums_ptr.TweetID); err == nil {
-							mxNotify(mxcli, "redaction", "Ok, I removed your favor from that tweet")
+							mxNotify(mxcli, "redaction", ev.Sender, "Ok, I removed your favor from that tweet")
 						} else {
 							log.Println("RedactTweetERROR:", err)
-							mxNotify(mxcli, "redaction", "Could not redact your favor")
+							mxNotify(mxcli, "redaction", ev.Sender, "Could not redact your favor")
 						}
 					}
 					if len(rums_ptr.TootID) > 0 {
 						if _, err := mclient.Unfavourite(context.Background(), rums_ptr.TootID); err == nil {
-							mxNotify(mxcli, "redaction", "Ok, I removed your favour from that toot")
+							mxNotify(mxcli, "redaction", ev.Sender, "Ok, I removed your favour from that toot")
 						} else {
 							log.Println("RedactTweetERROR", err)
-							mxNotify(mxcli, "redaction", "Could not redact your favour")
+							mxNotify(mxcli, "redaction", ev.Sender, "Could not redact your favour")
 						}
 					}
 
 				}
 			} else {
-				mxNotify(mxcli, "redaction", "Won't redact other users status for you! Set admins_can_redact_user_status=true if you disagree.")
+				mxNotify(mxcli, "redaction", ev.Sender, "Won't redact other users status for you! Set admins_can_redact_user_status=true if you disagree.")
 			}
 		}()
 	})
@@ -499,7 +507,7 @@ func runMatrixPublishBot() {
 			}
 
 			if membership, inmap := ev.Content["membership"]; inmap && membership == "join" {
-				mxNotify(mxcli, "welcomer", c["matrix"]["join_welcome_text"])
+				mxNotify(mxcli, "welcomer", ev.Sender, c["matrix"]["join_welcome_text"])
 			}
 		})
 	}
