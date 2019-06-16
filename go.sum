@@ -21,6 +21,8 @@ github.com/gorilla/websocket v1.2.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoA
 github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af/go.mod h1:3fxX6gUjWyI/2Bt7J1OLhpCzOfO/bB3AiX0cJtEKud0=
 github.com/matrix-org/gomatrix v0.0.0-20190418155519-0c31efc5dc73 h1:6UHeDHVmtcPrbVvsMg2OVtyUj4S8KNI9mWFlQLIebGo=
 github.com/matrix-org/gomatrix v0.0.0-20190418155519-0c31efc5dc73/go.mod h1:3fxX6gUjWyI/2Bt7J1OLhpCzOfO/bB3AiX0cJtEKud0=
+github.com/matrix-org/gomatrix v0.0.0-20190528120928-7df988a63f26 h1:Hr3zjRsq2bhrnp3Ky1qgx/fzCtCALOoGYylh2tpS9K4=
+github.com/matrix-org/gomatrix v0.0.0-20190528120928-7df988a63f26/go.mod h1:3fxX6gUjWyI/2Bt7J1OLhpCzOfO/bB3AiX0cJtEKud0=
 github.com/mattn/go-mastodon v0.0.4-0.20190311051807-e804ee7eb264 h1:vieGEuR3CXP7q0LruaSDdBB2yYtpGsDOkJOsMGzaN5A=
 github.com/mattn/go-mastodon v0.0.4-0.20190311051807-e804ee7eb264/go.mod h1:/OSOSDJyV0OUlBuDV0Qrllizt3BJNj4Ir5xhckYRVmg=
 github.com/microcosm-cc/bluemonday v1.0.2 h1:5lPfLTTAvAbtS0VqT+94yOtFnGfUWYyx0+iToC3Os3s=

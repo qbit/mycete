@@ -10,7 +10,7 @@ require (
 	github.com/garyburd/go-oauth v0.0.0-20180319155456-bca2e7f09a17 // indirect
 	github.com/gokyle/goconfig v0.0.0-20150908043511-373746557f7f
 	github.com/gorilla/websocket v1.2.0 // indirect
-	github.com/matrix-org/gomatrix v0.0.0-20190418155519-0c31efc5dc73
+	github.com/matrix-org/gomatrix v0.0.0-20190528120928-7df988a63f26
 	github.com/mattn/go-mastodon v0.0.4-0.20190311051807-e804ee7eb264
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/tomnomnom/linkheader v0.0.0-20160328204959-6953a30d4443 // indirect
