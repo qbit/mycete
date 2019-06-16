@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/btittelbach/cachetable"
 	"github.com/matrix-org/gomatrix"
@@ -70,6 +71,27 @@ func getUserFileList(nick string) ([]string, error) {
 		fullnames[idx] = path.Join(userdir, filename)
 	}
 	return fullnames, nil
+}
+
+func timeoutUserFiles(full_filepaths []string, timeout time.Duration) (passed_filepaths []string, num_filtered uint, err error) {
+	now := time.Now()
+	passed_idx := 0
+	passed_filepaths = make([]string, 0, len(full_filepaths))
+	for _, fpath := range full_filepaths {
+		var fstat os.FileInfo
+		fstat, err = os.Stat(fpath)
+		if err != nil {
+			return
+		}
+		if now.Sub(fstat.ModTime()) > timeout {
+			num_filtered++
+			os.Remove(fpath)
+		} else {
+			passed_filepaths = append(passed_filepaths, fpath)
+			passed_idx++
+		}
+	}
+	return
 }
 
 func saveMatrixFile(cli *gomatrix.Client, nick, eventid, matrixurl string) error {
