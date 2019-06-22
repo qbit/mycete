@@ -153,4 +153,6 @@ Oauth via console pin. (TODO)
 - [X] use constrained memory, not slowly ever growing maps. Aka don't be a memory hog
 - [ ] twitter stream to matrix, favorite and retweet
 - [ ] look into support for small videos
-- [ ] optionally redact matrix imagemessages after a while, thus not clobbering matrix-synapse storage
+- [ ] clean up matrixbot.go prefix parser code
+- [ ] find a way to boost/replyto/favourite remote Toots (requires translation of URL to local Mastodon instance's status ID). In the meantime we add a "reply using this" URL in the room
+- [ ] make showing images in Matrix rooms optional for each additional room
