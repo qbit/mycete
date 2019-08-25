@@ -18,6 +18,8 @@ github.com/gokyle/goconfig v0.0.0-20150908043511-373746557f7f h1:76otnMvqiZHJJk2
 github.com/gokyle/goconfig v0.0.0-20150908043511-373746557f7f/go.mod h1:fh5hkiZSEjCxgFRNLGuGwH4Pcd46DjjqQ7jN3PsLKW4=
 github.com/gorilla/websocket v1.2.0 h1:VJtLvh6VQym50czpZzx07z/kw9EgAxI3x1ZB8taTMQQ=
 github.com/gorilla/websocket v1.2.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
+github.com/kylemcc/twitter-text-go v0.0.0-20180726194232-7f582f6736ec h1:ZXWuspqypleMuJy4bzYEqlMhJnGAYpLrWe5p7W3CdvI=
+github.com/kylemcc/twitter-text-go v0.0.0-20180726194232-7f582f6736ec/go.mod h1:voECJzdraJmolzPBgL9Z7ANwXf4oMXaTCsIkdiPpR/g=
 github.com/matrix-org/gomatrix v0.0.0-20190130130140-385f072fe9af/go.mod h1:3fxX6gUjWyI/2Bt7J1OLhpCzOfO/bB3AiX0cJtEKud0=
 github.com/matrix-org/gomatrix v0.0.0-20190418155519-0c31efc5dc73 h1:6UHeDHVmtcPrbVvsMg2OVtyUj4S8KNI9mWFlQLIebGo=
 github.com/matrix-org/gomatrix v0.0.0-20190418155519-0c31efc5dc73/go.mod h1:3fxX6gUjWyI/2Bt7J1OLhpCzOfO/bB3AiX0cJtEKud0=

@@ -4,15 +4,18 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/ChimeraCoder/anaconda"
+	twittertextextract "github.com/kylemcc/twitter-text-go/extract"
 	mastodon "github.com/mattn/go-mastodon"
 )
 
 const character_limit_twitter_ int = 280
 const character_limit_mastodon_ int = 500
+const character_penalty_urls_ int = 23 //currently the same for twitter and mastodon. supposed to check this via twitter api at startup (low priority TODO)
 const imgbytes_limit_twitter_ int64 = 5242880
 const imgbytes_limit_mastodon_ int64 = 4 * 1024 * 1024
 
@@ -28,8 +31,28 @@ func checkCharacterLimit(status string) error {
 		climit = character_limit_twitter_
 	}
 
+	//calc length as counted by twitter/mastodon
+	//any URL counts as ~23 runes
+	urlsinstatus := twittertextextract.ExtractUrls(status)
+	statuslen := len(status)
+	for _, url := range urlsinstatus {
+		//echo URL is counted as a fixed number of characters
+		statuslen -= len(url.Text)
+		statuslen += character_penalty_urls_
+	}
+
+	//mastodon does not count screen name domains
+	//find all directmsg_re_ and remove length of trailing domain
+	//but only for Mastodon (aka if twitter is disabled) (shorter anyway)
+	if c["server"]["mastodon"] == "true" && c["server"]["twitter"] != "true" {
+		directmsg_re_ = regexp.MustCompile(`(?:^|\s)@\w+(@[a-zA-Z0-9.]+)(?:\W|$)`)
+		for _, m := range directmsg_re_.FindAllStringSubmatch(status, 20) {
+			statuslen -= len(m[1])
+		}
+	}
+
 	// get number of characters ... this is not entirely accurate, but close enough. (read twitters API page on character counting)
-	if len(status) <= climit {
+	if statuslen <= climit {
 		return nil
 	} else {
 		return fmt.Errorf("status/tweet of %d characters exceeds limit of %d", len(status), climit)
