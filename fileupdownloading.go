@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/btittelbach/cachetable"
-	"github.com/matrix-org/gomatrix"
+	"github.com/btittelbach/gomatrix"
 )
 
 /// unfortunately, since neither go-twitter, anaconda or go-mastodon implement an io.Reader interface we have to use actual temporary files
@@ -58,6 +58,9 @@ func osGetLimitedNumElementsInDir(directory string) (int, error) {
 func getUserFileList(nick string) ([]string, error) {
 	userdir := hashNickToUserDir(nick)
 	f, err := os.Open(userdir)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -73,10 +76,10 @@ func getUserFileList(nick string) ([]string, error) {
 	return fullnames, nil
 }
 
-func timeoutUserFiles(full_filepaths []string, timeout time.Duration) (passed_filepaths []string, num_filtered uint, err error) {
+func filterFilelistByFileAge(full_filepaths []string, timeout time.Duration) (still_within_timeout_filepaths []string, older_than_timeout_filepaths []string, err error) {
 	now := time.Now()
-	passed_idx := 0
-	passed_filepaths = make([]string, 0, len(full_filepaths))
+	still_within_timeout_filepaths = make([]string, 0, len(full_filepaths))
+	older_than_timeout_filepaths = make([]string, 0, len(full_filepaths))
 	for _, fpath := range full_filepaths {
 		var fstat os.FileInfo
 		fstat, err = os.Stat(fpath)
@@ -84,11 +87,9 @@ func timeoutUserFiles(full_filepaths []string, timeout time.Duration) (passed_fi
 			return
 		}
 		if now.Sub(fstat.ModTime()) > timeout {
-			num_filtered++
-			os.Remove(fpath)
+			older_than_timeout_filepaths = append(older_than_timeout_filepaths, fpath)
 		} else {
-			passed_filepaths = append(passed_filepaths, fpath)
-			passed_idx++
+			still_within_timeout_filepaths = append(still_within_timeout_filepaths, fpath)
 		}
 	}
 	return

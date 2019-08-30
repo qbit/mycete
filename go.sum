@@ -8,6 +8,8 @@ github.com/btittelbach/cachetable v0.9.1 h1:19DvD1DM2swZldOkeXxbkqTZyBDyah/3SZ2/
 github.com/btittelbach/cachetable v0.9.1/go.mod h1:gCd8/Aw1VXag3b9e34phL/v06rV1U79tqZoVRZQsC9U=
 github.com/btittelbach/gomatrix v0.0.0-20190413204209-f801209a7f2d h1:AFAPUCaqjI0ELH5EUUO7hnqZzCG1YKIrvr+vzrzRHIw=
 github.com/btittelbach/gomatrix v0.0.0-20190413204209-f801209a7f2d/go.mod h1:0VRF8Um+5nTL1wpOfDZeiwRz6s/ieTi/rqsbfx4L0p0=
+github.com/btittelbach/gomatrix v0.0.0-20190830190919-94d369014c5b h1:SI0m6/YdEIFXZs4UKTdXzu9k7PueGoFeNtlkCsyG7XA=
+github.com/btittelbach/gomatrix v0.0.0-20190830190919-94d369014c5b/go.mod h1:0VRF8Um+5nTL1wpOfDZeiwRz6s/ieTi/rqsbfx4L0p0=
 github.com/dustin/go-jsonpointer v0.0.0-20160814072949-ba0abeacc3dc h1:tP7tkU+vIsEOKiK+l/NSLN4uUtkyuxc6hgYpQeCWAeI=
 github.com/dustin/go-jsonpointer v0.0.0-20160814072949-ba0abeacc3dc/go.mod h1:ORH5Qp2bskd9NzSfKqAF7tKfONsEkCarTE5ESr/RVBw=
 github.com/dustin/gojson v0.0.0-20160307161227-2e71ec9dd5ad h1:Qk76DOWdOp+GlyDKBAG3Klr9cn7N+LcYc82AZ2S7+cA=

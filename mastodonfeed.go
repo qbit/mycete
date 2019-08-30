@@ -6,7 +6,7 @@ import (
 
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/btittelbach/cachetable"
-	"github.com/matrix-org/gomatrix"
+	"github.com/btittelbach/gomatrix"
 	mastodon "github.com/mattn/go-mastodon"
 )
 

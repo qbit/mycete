@@ -100,6 +100,8 @@ show_complete_home_stream=false
 characterlimit = 1000
 imagebyteslimit = 4194304
 imagecountlimit = 4
+image_timeout_minutes = 60
+image_timeout_warning = "Hey, more than 1 hour ago you added images that I'm now going to attach to your toot/tweet. Just letting you know. Delete them first if that is not what you want."
 
 [feed2morerooms]
 subscribe_tagstreams=interesstingtag otherinteresstingtag

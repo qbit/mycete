@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/matrix-org/gomatrix"
+	"github.com/btittelbach/gomatrix"
 	mastodon "github.com/mattn/go-mastodon"
 )
 
@@ -406,12 +406,11 @@ func runMatrixPublishBot() {
 				mxNotify(mxcli, "runMatrixPublishBot", ev.Sender, "Ahh. Audio/Video files are not supported directly. Please just include it's URL in your Toot/Tweet and Mastodon/Twitter will do the rest.")
 			default:
 				fmt.Printf("%s messages are currently not supported", mtype)
-				//remove saved image file if present. We only attach an image once.
 			}
 		}
 	})
 
-	/// Support redactions to "take back an uploaded image"
+	/// Support redactions to "take back an uploaded image" or "delete a toot/tweet"
 	syncer.OnEventType("m.room.redaction", func(ev *gomatrix.Event) {
 		if mxIgnoreEvent(ev) { //ignore messages from ourselves or from other rooms in case of dual-login
 			return
@@ -508,6 +507,37 @@ func runMatrixPublishBot() {
 
 			if membership, inmap := ev.Content["membership"]; inmap && membership == "join" {
 				mxNotify(mxcli, "welcomer", ev.Sender, c["matrix"]["join_welcome_text"])
+			}
+		})
+	}
+
+	/// Inform typing users that they might have forgotten some uploaded images
+	if c.GetValueDefault("images", "enabled", "false") == "true" {
+		syncer.OnEventType("m.typing", func(ev *gomatrix.Event) {
+			if mxIgnoreEvent(ev) { //ignore messages from ourselves or from other rooms in case of dual-login
+				return
+			}
+
+			typing_user_list_interface := ev.Content["user_ids"]
+			for _, userid_i := range typing_user_list_interface.([]interface{}) {
+				if userid, ok := userid_i.(string); ok {
+					user_filelist, err := getUserFileList(userid)
+					if err != nil {
+						log.Println("Error getting Filelist of ", userid, " due to: ", err)
+						return
+					}
+					if len(user_filelist) > 0 {
+						warnmsg := c.GetValueDefault("feed2matrix", "image_timeout_warning", "Warning! There are old images ready to send. Better check before tweeting/tooting!")
+						_, outdated_filelist, err := filterFilelistByFileAge(user_filelist, feed2matrx_image_timeout_)
+						if err != nil {
+							log.Println("Error filtering Filelist of ", userid, " by age due to: ", err)
+							return
+						}
+						if len(outdated_filelist) > 0 {
+							mxNotify(mxcli, "warnoldimages", userid, warnmsg)
+						}
+					}
+				}
 			}
 		})
 	}
