@@ -11,7 +11,7 @@ import (
 	"syscall"
 
 	"github.com/gokyle/goconfig"
-	"github.com/qbit/mycete/protector"
+	"suah.dev/protect"
 )
 
 /// Configuration Globals
@@ -63,7 +63,7 @@ func main() {
 	cfile := flag.String("conf", "/etc/mycete.conf", "Configuration file")
 	flag.Parse()
 
-	protector.Protect("stdio rpath cpath wpath fattr inet dns")
+	_ = protect.Pledge("stdio rpath cpath wpath fattr inet dns")
 
 	c, err = goconfig.ParseFile(*cfile)
 	if err != nil {
